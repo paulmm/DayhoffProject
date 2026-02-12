@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { getModuleById } from "@/data/modules-catalog";
+import { getDemoPdbId } from "@/data/recipe-demo-structures";
+import MolstarViewerDynamic from "@/components/molstar/MolstarViewerDynamic";
 import {
   ArrowLeft,
   ArrowRight,
@@ -176,6 +178,22 @@ export default function RunningExperimentPage() {
               </span>
             )}
           </div>
+        </div>
+      )}
+
+      {/* Structure Preview */}
+      {experiment.config?.recipeId && getDemoPdbId(experiment.config.recipeId) && (
+        <div className="rounded-xl border border-white/10 bg-dayhoff-bg-secondary p-5">
+          <h3 className="text-sm font-semibold text-white">Structure Preview</h3>
+          <div className="mt-3">
+            <MolstarViewerDynamic
+              pdbId={getDemoPdbId(experiment.config.recipeId!)!}
+              height="h-64"
+            />
+          </div>
+          <p className="mt-2 text-[10px] text-gray-500">
+            Demo structure: PDB {getDemoPdbId(experiment.config.recipeId!)}
+          </p>
         </div>
       )}
 

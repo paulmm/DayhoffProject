@@ -9,6 +9,9 @@ import {
   type ExperimentRecipe,
   type RecipeParameter,
 } from "@/data/experiment-recipes";
+import { parsePdbChains } from "@/lib/pdb-parser";
+import { getDemoPdbId } from "@/data/recipe-demo-structures";
+import MolstarViewerDynamic from "@/components/molstar/MolstarViewerDynamic";
 import {
   FlaskConical,
   Brain,
@@ -314,10 +317,14 @@ function ParameterField({
   param,
   value,
   onChange,
+  availableChains,
+  onFileRead,
 }: {
   param: RecipeParameter;
   value: string | number;
   onChange: (val: string | number) => void;
+  availableChains?: string[];
+  onFileRead?: (paramId: string, text: string) => void;
 }) {
   const [showTooltip, setShowTooltip] = useState(false);
 
@@ -404,7 +411,24 @@ function ParameterField({
         />
       )}
 
-      {param.type === "text" && (
+      {param.type === "text" && param.id === "chain_selection" && availableChains && availableChains.length > 0 ? (
+        <select
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white focus:border-dayhoff-purple focus:outline-none focus:ring-1 focus:ring-dayhoff-purple"
+        >
+          {availableChains.map((chain) => (
+            <option key={chain} value={chain} className="bg-dayhoff-bg-secondary">
+              Chain {chain}
+            </option>
+          ))}
+          {availableChains.length > 1 && (
+            <option value={availableChains.join(",")} className="bg-dayhoff-bg-secondary">
+              All chains ({availableChains.join(", ")})
+            </option>
+          )}
+        </select>
+      ) : param.type === "text" && (
         <input
           type="text"
           value={value}
@@ -446,7 +470,10 @@ function ParameterField({
               <div className="flex items-center gap-2">
                 <span className="text-sm text-white">{String(value)}</span>
                 <button
-                  onClick={() => onChange("")}
+                  onClick={() => {
+                    onChange("");
+                    onFileRead?.(param.id, "");
+                  }}
                   className="text-gray-400 hover:text-red-400"
                 >
                   <X className="h-3.5 w-3.5" />
@@ -472,7 +499,15 @@ function ParameterField({
                 className="hidden"
                 onChange={(e) => {
                   const file = e.target.files?.[0];
-                  if (file) onChange(file.name);
+                  if (file) {
+                    onChange(file.name);
+                    const reader = new FileReader();
+                    reader.onload = (ev) => {
+                      const text = ev.target?.result as string;
+                      if (text) onFileRead?.(param.id, text);
+                    };
+                    reader.readAsText(file);
+                  }
                 }}
               />
             </label>
@@ -648,6 +683,8 @@ export default function NewExperimentPage() {
   const [experimentName, setExperimentName] = useState("");
   const [experimentDescription, setExperimentDescription] = useState("");
   const [launching, setLaunching] = useState(false);
+  const [uploadedPdbText, setUploadedPdbText] = useState("");
+  const [availableChains, setAvailableChains] = useState<string[]>([]);
 
   /* ── Handlers ───────────────────────────── */
 
@@ -701,6 +738,23 @@ export default function NewExperimentPage() {
 
   const handleParamChange = (id: string, value: string | number) => {
     setParamValues((prev) => ({ ...prev, [id]: value }));
+  };
+
+  const handleFileRead = (paramId: string, text: string) => {
+    if (paramId === "input_pdb") {
+      if (text) {
+        setUploadedPdbText(text);
+        const chains = parsePdbChains(text);
+        setAvailableChains(chains);
+        // Auto-set chain_selection to first chain
+        if (chains.length > 0) {
+          setParamValues((prev) => ({ ...prev, chain_selection: chains[0] }));
+        }
+      } else {
+        setUploadedPdbText("");
+        setAvailableChains([]);
+      }
+    }
   };
 
   const canProceedToReview = () => {
@@ -966,6 +1020,8 @@ export default function NewExperimentPage() {
                         param={param}
                         value={paramValues[param.id] ?? param.default}
                         onChange={(val) => handleParamChange(param.id, val)}
+                        availableChains={availableChains}
+                        onFileRead={handleFileRead}
                       />
                     ))}
                   </div>
@@ -990,20 +1046,29 @@ export default function NewExperimentPage() {
               </div>
             </div>
 
-            {/* Right sidebar: 3D viewer placeholder */}
+            {/* Right sidebar: 3D viewer */}
             <div className="hidden lg:block">
               <div className="sticky top-8 rounded-xl border border-white/10 bg-dayhoff-bg-secondary p-5">
                 <h3 className="text-sm font-semibold text-white">
                   Structure Preview
                 </h3>
-                <div className="mt-3 flex h-64 items-center justify-center rounded-lg border border-dashed border-white/10 bg-white/5">
-                  <div className="text-center">
-                    <FlaskConical className="mx-auto h-8 w-8 text-gray-600" />
-                    <p className="mt-2 text-xs text-gray-500">
-                      3D viewer coming soon
-                    </p>
-                  </div>
+                <div className="mt-3">
+                  <MolstarViewerDynamic
+                    pdbData={uploadedPdbText || undefined}
+                    pdbId={!uploadedPdbText ? (getDemoPdbId(selectedRecipe.id) ?? undefined) : undefined}
+                    height="h-64"
+                  />
                 </div>
+                {uploadedPdbText && availableChains.length > 0 && (
+                  <p className="mt-2 text-[10px] text-gray-500">
+                    Showing uploaded structure &middot; {availableChains.length} chain{availableChains.length !== 1 ? "s" : ""} detected
+                  </p>
+                )}
+                {!uploadedPdbText && getDemoPdbId(selectedRecipe.id) && (
+                  <p className="mt-2 text-[10px] text-gray-500">
+                    Demo structure: PDB {getDemoPdbId(selectedRecipe.id)}
+                  </p>
+                )}
 
                 {/* Quick info */}
                 <div className="mt-4 space-y-2 text-xs">
