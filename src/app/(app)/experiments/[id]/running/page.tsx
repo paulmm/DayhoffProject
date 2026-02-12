@@ -11,6 +11,7 @@ import {
   Cpu,
   FlaskConical,
   Loader2,
+  RotateCcw,
 } from "lucide-react";
 
 interface ExperimentData {
@@ -41,23 +42,50 @@ export default function RunningExperimentPage() {
   const params = useParams();
   const experimentId = params.id as string;
   const [experiment, setExperiment] = useState<ExperimentData | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Try sessionStorage first
+    // Try sessionStorage first for instant load
     const stored = sessionStorage.getItem(`experiment-${experimentId}`);
     if (stored) {
       try {
         setExperiment(JSON.parse(stored));
+        setLoading(false);
+        return;
       } catch {
-        // Fall through
+        // Fall through to API
       }
     }
+
+    // Fallback: fetch from API (handles refresh / direct navigation)
+    async function fetchExperiment() {
+      try {
+        const res = await fetch(`/api/experiments/${experimentId}`);
+        if (res.ok) {
+          const data = await res.json();
+          setExperiment(data);
+        }
+      } catch {
+        // Silently fail
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchExperiment();
   }, [experimentId]);
 
   const modules =
     experiment?.config?.moduleIds
       ?.map((id) => getModuleById(id))
       .filter(Boolean) ?? [];
+
+  if (loading) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-dayhoff-purple" />
+      </div>
+    );
+  }
 
   if (!experiment) {
     return (
@@ -71,9 +99,7 @@ export default function RunningExperimentPage() {
         </Link>
         <div className="rounded-xl border border-white/10 bg-dayhoff-bg-secondary p-12 text-center">
           <FlaskConical className="mx-auto h-10 w-10 text-gray-600" />
-          <p className="mt-3 text-sm text-gray-400">
-            Experiment not found in session.
-          </p>
+          <p className="mt-3 text-sm text-gray-400">Experiment not found.</p>
           <Link
             href="/experiments"
             className="mt-4 inline-flex items-center gap-2 rounded-lg bg-dayhoff-purple px-5 py-2.5 text-sm font-semibold text-white hover:bg-dayhoff-purple/80"
@@ -100,6 +126,11 @@ export default function RunningExperimentPage() {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-bold text-white">{experiment.name}</h1>
+          {experiment.config?.recipeName && (
+            <p className="mt-0.5 text-sm text-dayhoff-purple">
+              {experiment.config.recipeName}
+            </p>
+          )}
           {experiment.goal && (
             <p className="mt-1 text-sm text-gray-400">{experiment.goal}</p>
           )}
@@ -166,6 +197,17 @@ export default function RunningExperimentPage() {
           This is a simulated progress view. In production, this page would
           receive real-time updates from the compute backend.
         </p>
+      </div>
+
+      {/* Actions */}
+      <div className="flex items-center gap-3">
+        <Link
+          href="/experiments/new"
+          className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white hover:bg-white/10"
+        >
+          <RotateCcw className="h-4 w-4" />
+          New Experiment
+        </Link>
       </div>
 
       {/* Info */}

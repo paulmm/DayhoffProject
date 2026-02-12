@@ -9,6 +9,7 @@ interface Experiment {
   name: string;
   status: "DRAFT" | "QUEUED" | "RUNNING" | "COMPLETED" | "FAILED";
   goal: string | null;
+  config: { recipeName?: string } | null;
   createdAt: string;
 }
 
@@ -101,6 +102,11 @@ export default function ExperimentsPage() {
                   <h3 className="text-base font-semibold text-white">
                     {exp.name}
                   </h3>
+                  {exp.config?.recipeName && (
+                    <p className="mt-0.5 text-xs text-dayhoff-purple">
+                      {exp.config.recipeName}
+                    </p>
+                  )}
                   {exp.goal && (
                     <p className="mt-1 line-clamp-1 text-sm text-gray-400">
                       {exp.goal}

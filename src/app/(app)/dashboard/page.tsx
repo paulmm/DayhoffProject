@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
 import { getModuleById } from "@/data/modules-catalog";
 import {
   FlaskConical,
@@ -98,6 +99,7 @@ function timeAgo(dateStr: string): string {
 /* ── Main Page ────────────────────────────────────────────────── */
 
 export default function DashboardPage() {
+  const { data: session } = useSession();
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -140,7 +142,9 @@ export default function DashboardPage() {
     <div className="mx-auto max-w-6xl space-y-8 p-8">
       {/* ── A. Welcome Header ─────────────────── */}
       <div>
-        <h1 className="text-2xl font-bold text-white">Welcome back</h1>
+        <h1 className="text-2xl font-bold text-white">
+          Welcome back{session?.user?.name ? `, ${session.user.name}` : ""}
+        </h1>
         <p className="mt-1 text-sm text-gray-400">
           Here&apos;s what&apos;s happening in your lab
         </p>
