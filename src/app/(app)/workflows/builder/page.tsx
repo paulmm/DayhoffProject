@@ -2,25 +2,31 @@
 
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { type ModuleMetadata, getModuleById } from "@/data/modules-catalog";
+import { type ModuleMetadata, getModuleById, MODULE_CATALOG } from "@/data/modules-catalog";
+import { validateModuleConnection } from "@/lib/modules/module-metadata";
 import { useCustomWorkflows } from "@/hooks/useCustomWorkflows";
 import WorkflowCanvas, {
   type WorkflowModule,
   type WorkflowConnection,
 } from "@/components/workflow/WorkflowCanvas";
 import ModulePalette from "@/components/workflow/ModulePalette";
+import AIWorkflowComposer, { type ComposeResult } from "@/components/workflow/AIWorkflowComposer";
+import AIResultOverlay from "@/components/workflow/AIResultOverlay";
 import {
   Save,
   CheckCircle2,
   Loader2,
   ArrowLeft,
   Trash2,
+  Brain,
+  Hand,
 } from "lucide-react";
 
 export default function WorkflowBuilderPage() {
   const router = useRouter();
   const { saveWorkflow } = useCustomWorkflows();
 
+  const [mode, setMode] = useState<"ai" | "manual">("ai");
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [modules, setModules] = useState<WorkflowModule[]>([]);
@@ -28,6 +34,7 @@ export default function WorkflowBuilderPage() {
   const [selectedModuleId, setSelectedModuleId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [composeResult, setComposeResult] = useState<ComposeResult | null>(null);
 
   /* ── module actions ──────────────────────────────────────────── */
 
@@ -73,6 +80,57 @@ export default function WorkflowBuilderPage() {
     setValidationErrors([]);
   }, []);
 
+  /* ── accept AI workflow ──────────────────────────────────────── */
+
+  const handleAcceptAIWorkflow = useCallback((result: ComposeResult) => {
+    const wfData = result.workflow;
+
+    // Create workflow modules with unique node IDs
+    const newModules: WorkflowModule[] = wfData.modules.map((m: any, i: number) => {
+      const catalogMod = MODULE_CATALOG.find((c) => c.id === m.moduleId);
+      return {
+        id: `node-${Date.now()}-${i}-${Math.random().toString(36).slice(2, 6)}`,
+        moduleId: m.moduleId,
+        name: m.name || catalogMod?.displayName || m.moduleId,
+        category: m.category || catalogMod?.category || "protein",
+        position: m.position || { x: 100 + i * 280, y: 200 },
+        inputs: m.inputs || catalogMod?.inputFormats.map((f: string) => f.toLowerCase()) || [],
+        outputs: m.outputs || catalogMod?.outputFormats.map((f: string) => f.toLowerCase()) || [],
+      };
+    });
+
+    // Create connections using new node IDs
+    const newConnections: WorkflowConnection[] = (wfData.connections || [])
+      .map((c: any) => {
+        const fromMod = newModules[c.from];
+        const toMod = newModules[c.to];
+        if (!fromMod || !toMod) return null;
+
+        const validation = validateModuleConnection(fromMod.moduleId, toMod.moduleId);
+
+        return {
+          id: `conn-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          from: fromMod.id,
+          to: toMod.id,
+          fromPort: fromMod.outputs[0] || "output",
+          toPort: toMod.inputs[0] || "input",
+          dataType: c.dataType || "unknown",
+          validated: validation.valid,
+          learningAnnotation: c.learningAnnotation || validation.learningNote,
+        };
+      })
+      .filter(Boolean) as WorkflowConnection[];
+
+    setModules(newModules);
+    setConnections(newConnections);
+    setName(wfData.name || "");
+    setDescription(wfData.description || "");
+    setValidationErrors([]);
+    setComposeResult(null);
+    // Switch to manual mode so user can edit the AI-generated workflow
+    setMode("manual");
+  }, []);
+
   /* ── validate ────────────────────────────────────────────────── */
 
   const validate = (): boolean => {
@@ -80,7 +138,6 @@ export default function WorkflowBuilderPage() {
     if (!name.trim()) errors.push("Workflow name is required");
     if (modules.length === 0) errors.push("Add at least one module");
 
-    // check for disconnected modules (except single-module workflows)
     if (modules.length > 1) {
       const connectedIds = new Set<string>();
       connections.forEach((c) => {
@@ -134,8 +191,6 @@ export default function WorkflowBuilderPage() {
     };
 
     saveWorkflow(workflow);
-
-    // Brief delay for UX
     await new Promise((r) => setTimeout(r, 400));
     setSaving(false);
     router.push("/workflows?saved=1");
@@ -157,22 +212,33 @@ export default function WorkflowBuilderPage() {
           <ArrowLeft className="h-4 w-4" />
         </button>
 
-        <div className="flex flex-1 items-center gap-3">
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Workflow name..."
-            className="w-48 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-sm font-semibold text-white placeholder-gray-500 focus:border-dayhoff-purple focus:outline-none focus:ring-1 focus:ring-dayhoff-purple"
-          />
-          <input
-            type="text"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Description (optional)..."
-            className="w-64 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-gray-300 placeholder-gray-500 focus:border-dayhoff-purple focus:outline-none focus:ring-1 focus:ring-dayhoff-purple"
-          />
+        {/* Mode toggle */}
+        <div className="flex gap-0.5 rounded-lg border border-white/10 bg-white/5 p-0.5">
+          <button
+            onClick={() => setMode("ai")}
+            className={`flex items-center gap-1.5 rounded-md px-3 py-1 text-xs font-semibold transition-all ${
+              mode === "ai"
+                ? "bg-dayhoff-purple text-white"
+                : "text-gray-400 hover:text-white"
+            }`}
+          >
+            <Brain className="h-3.5 w-3.5" />
+            AI Mode
+          </button>
+          <button
+            onClick={() => setMode("manual")}
+            className={`flex items-center gap-1.5 rounded-md px-3 py-1 text-xs font-semibold transition-all ${
+              mode === "manual"
+                ? "bg-dayhoff-purple text-white"
+                : "text-gray-400 hover:text-white"
+            }`}
+          >
+            <Hand className="h-3.5 w-3.5" />
+            Manual
+          </button>
         </div>
+
+        <div className="flex-1" />
 
         <div className="flex items-center gap-2">
           <span className="text-xs text-gray-500">
@@ -214,11 +280,39 @@ export default function WorkflowBuilderPage() {
 
       {/* Main area */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Left: Module Palette */}
-        <ModulePalette onAddModule={addModule} />
+        {/* Left panel: AI or Manual */}
+        {mode === "ai" ? (
+          <AIWorkflowComposer onResult={setComposeResult} />
+        ) : (
+          <ModulePalette onAddModule={addModule} />
+        )}
 
-        {/* Center: Canvas */}
-        <div className="flex-1">
+        {/* Center: Canvas + AI Result Overlay */}
+        <div className="relative flex-1">
+          {/* Floating name/description on canvas */}
+          <div className="absolute left-4 top-4 z-10 flex flex-col gap-0.5">
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Workflow name..."
+              className="w-[28rem] bg-transparent px-1 text-lg font-bold text-white placeholder-gray-600 focus:outline-none"
+            />
+            <input
+              type="text"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Description (optional)..."
+              className="w-[28rem] bg-transparent px-1 text-xs text-gray-400 placeholder-gray-600 focus:outline-none"
+            />
+          </div>
+          {composeResult && (
+            <AIResultOverlay
+              result={composeResult}
+              onAccept={handleAcceptAIWorkflow}
+              onDismiss={() => setComposeResult(null)}
+            />
+          )}
           <WorkflowCanvas
             modules={modules}
             connections={connections}
