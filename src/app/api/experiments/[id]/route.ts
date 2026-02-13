@@ -22,3 +22,26 @@ export async function GET(
 
   return NextResponse.json(experiment);
 }
+
+export async function DELETE(
+  _request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  const userId = await getAuthenticatedUserId();
+  if (!userId) return unauthorizedResponse();
+
+  const experiment = await prisma.experiment.findFirst({
+    where: { id: params.id, userId },
+  });
+
+  if (!experiment) {
+    return NextResponse.json(
+      { error: "Experiment not found" },
+      { status: 404 }
+    );
+  }
+
+  await prisma.experiment.delete({ where: { id: params.id } });
+
+  return NextResponse.json({ deleted: true });
+}

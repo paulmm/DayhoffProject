@@ -6,8 +6,6 @@ import { useSession } from "next-auth/react";
 import { getModuleById } from "@/data/modules-catalog";
 import {
   FlaskConical,
-  CheckCircle2,
-  BookOpen,
   Loader2,
   GitBranch,
   Boxes,
@@ -24,7 +22,7 @@ interface Experiment {
   name: string;
   status: string;
   goal: string | null;
-  config: { recipeName?: string } | null;
+  config: { workflowName?: string } | null;
   createdAt: string;
 }
 
@@ -125,18 +123,6 @@ export default function DashboardPage() {
     );
   }
 
-  const counts = data?.experimentCounts ?? {
-    total: 0,
-    queued: 0,
-    running: 0,
-    completed: 0,
-    failed: 0,
-  };
-  const stats = data?.stats ?? {
-    totalModulesExplored: 0,
-    totalQuestionsAsked: 0,
-    totalInsights: 0,
-  };
 
   return (
     <div className="mx-auto max-w-6xl space-y-8 p-8">
@@ -150,39 +136,7 @@ export default function DashboardPage() {
         </p>
       </div>
 
-      {/* Stat cards */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <div className="rounded-xl border border-white/10 bg-dayhoff-bg-secondary p-5">
-          <FlaskConical className="h-5 w-5 text-dayhoff-purple" />
-          <div className="mt-3 text-3xl font-bold text-white">
-            {counts.total}
-          </div>
-          <div className="mt-1 text-sm text-gray-400">Total Experiments</div>
-        </div>
-        <div className="rounded-xl border border-white/10 bg-dayhoff-bg-secondary p-5">
-          <Loader2
-            className={`h-5 w-5 text-dayhoff-amber ${counts.running > 0 ? "animate-spin" : ""}`}
-          />
-          <div className="mt-3 text-3xl font-bold text-white">
-            {counts.running}
-          </div>
-          <div className="mt-1 text-sm text-gray-400">Running</div>
-        </div>
-        <div className="rounded-xl border border-white/10 bg-dayhoff-bg-secondary p-5">
-          <CheckCircle2 className="h-5 w-5 text-dayhoff-emerald" />
-          <div className="mt-3 text-3xl font-bold text-white">
-            {counts.completed}
-          </div>
-          <div className="mt-1 text-sm text-gray-400">Completed</div>
-        </div>
-        <div className="rounded-xl border border-white/10 bg-dayhoff-bg-secondary p-5">
-          <BookOpen className="h-5 w-5 text-dayhoff-pink" />
-          <div className="mt-3 text-3xl font-bold text-white">
-            {stats.totalModulesExplored}
-          </div>
-          <div className="mt-1 text-sm text-gray-400">Modules Explored</div>
-        </div>
-      </div>
+      {/* Stat cards — hidden for now */}
 
       {/* ── B. Quick Actions ──────────────────── */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -280,9 +234,9 @@ export default function DashboardPage() {
                       {exp.status}
                     </span>
                   </div>
-                  {exp.config?.recipeName && (
+                  {exp.config?.workflowName && (
                     <p className="mt-0.5 text-xs text-gray-500">
-                      {exp.config.recipeName}
+                      {exp.config.workflowName}
                     </p>
                   )}
                 </div>
@@ -374,30 +328,6 @@ export default function DashboardPage() {
         <h2 className="text-lg font-semibold text-white">Getting Started</h2>
         <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
           <Link
-            href="/settings/ai"
-            className="rounded-xl border border-white/10 bg-dayhoff-bg-secondary p-4 transition-all hover:border-white/20"
-          >
-            <Settings className="h-5 w-5 text-dayhoff-purple" />
-            <h3 className="mt-2 text-sm font-semibold text-white">
-              Configure AI
-            </h3>
-            <p className="mt-1 text-xs text-gray-400">
-              Set up your Anthropic API key for AI-powered features
-            </p>
-          </Link>
-          <Link
-            href="/experiments/new"
-            className="rounded-xl border border-white/10 bg-dayhoff-bg-secondary p-4 transition-all hover:border-white/20"
-          >
-            <FlaskConical className="h-5 w-5 text-dayhoff-emerald" />
-            <h3 className="mt-2 text-sm font-semibold text-white">
-              Try a Recipe
-            </h3>
-            <p className="mt-1 text-xs text-gray-400">
-              Launch a pre-built experiment to see the platform in action
-            </p>
-          </Link>
-          <Link
             href="/modules"
             className="rounded-xl border border-white/10 bg-dayhoff-bg-secondary p-4 transition-all hover:border-white/20"
           >
@@ -407,6 +337,30 @@ export default function DashboardPage() {
             </h3>
             <p className="mt-1 text-xs text-gray-400">
               Explore modules to understand computational biology tools
+            </p>
+          </Link>
+          <Link
+            href="/experiments/new"
+            className="rounded-xl border border-white/10 bg-dayhoff-bg-secondary p-4 transition-all hover:border-white/20"
+          >
+            <FlaskConical className="h-5 w-5 text-dayhoff-emerald" />
+            <h3 className="mt-2 text-sm font-semibold text-white">
+              Try a Workflow
+            </h3>
+            <p className="mt-1 text-xs text-gray-400">
+              Launch a pre-built experiment to see the platform in action
+            </p>
+          </Link>
+          <Link
+            href="/settings/ai"
+            className="rounded-xl border border-white/10 bg-dayhoff-bg-secondary p-4 transition-all hover:border-white/20"
+          >
+            <Settings className="h-5 w-5 text-dayhoff-purple" />
+            <h3 className="mt-2 text-sm font-semibold text-white">
+              Configure AI
+            </h3>
+            <p className="mt-1 text-xs text-gray-400">
+              Set up your Anthropic API key for AI-powered features
             </p>
           </Link>
         </div>

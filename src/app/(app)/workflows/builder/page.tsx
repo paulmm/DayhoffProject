@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useCallback, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { type ModuleMetadata, getModuleById, MODULE_CATALOG } from "@/data/modules-catalog";
-import { validateModuleConnection } from "@/lib/modules/module-metadata";
+import { validateModuleConnection, getCompatibleModules } from "@/lib/modules/module-metadata";
 import { useCustomWorkflows } from "@/hooks/useCustomWorkflows";
 import WorkflowCanvas, {
   type WorkflowModule,
@@ -12,6 +12,7 @@ import WorkflowCanvas, {
 import ModulePalette from "@/components/workflow/ModulePalette";
 import AIWorkflowComposer, { type ComposeResult } from "@/components/workflow/AIWorkflowComposer";
 import AIResultOverlay from "@/components/workflow/AIResultOverlay";
+import BuilderChat from "@/components/workflow/BuilderChat";
 import {
   Save,
   CheckCircle2,
@@ -20,6 +21,7 @@ import {
   Trash2,
   Brain,
   Hand,
+  Plus,
 } from "lucide-react";
 
 export default function WorkflowBuilderPage() {
@@ -35,6 +37,53 @@ export default function WorkflowBuilderPage() {
   const [saving, setSaving] = useState(false);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [composeResult, setComposeResult] = useState<ComposeResult | null>(null);
+  const searchParams = useSearchParams();
+
+  /* ── load template from URL param ──────────────────────────── */
+
+  useEffect(() => {
+    const template = searchParams.get("template");
+    if (template !== "antibody-design" || modules.length > 0) return;
+
+    const moduleIds = ["rfdiffusion", "proteinmpnn", "esmfold"];
+    const now = Date.now();
+
+    const templateModules: WorkflowModule[] = moduleIds.map((id, i) => {
+      const meta = getModuleById(id)!;
+      return {
+        id: `node-${now}-${i}`,
+        moduleId: id,
+        name: meta.displayName,
+        category: meta.category,
+        position: { x: 100 + i * 280, y: 200 },
+        inputs: meta.inputFormats.map((f) => f.toLowerCase()),
+        outputs: meta.outputFormats.map((f) => f.toLowerCase()),
+      };
+    });
+
+    const templateConnections: WorkflowConnection[] = [];
+    for (let i = 0; i < templateModules.length - 1; i++) {
+      const from = templateModules[i];
+      const to = templateModules[i + 1];
+      const validation = validateModuleConnection(from.moduleId, to.moduleId);
+      templateConnections.push({
+        id: `conn-${now}-${i}`,
+        from: from.id,
+        to: to.id,
+        fromPort: from.outputs[0] || "output",
+        toPort: to.inputs[0] || "input",
+        dataType: from.outputs[0] || "pdb",
+        validated: validation.valid,
+        learningAnnotation: validation.learningNote,
+      });
+    }
+
+    setModules(templateModules);
+    setConnections(templateConnections);
+    setName("De Novo Antibody Design");
+    setDescription("RFdiffusion → ProteinMPNN → ESMFold pipeline for antibody candidate generation");
+    setMode("manual");
+  }, [searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /* ── module actions ──────────────────────────────────────────── */
 
@@ -53,7 +102,40 @@ export default function WorkflowBuilderPage() {
     };
     setModules((prev) => [...prev, newMod]);
     setValidationErrors([]);
+    return newMod;
   }, [modules.length]);
+
+  const addModuleAndConnect = useCallback((meta: ModuleMetadata, fromModule: WorkflowModule) => {
+    const newMod: WorkflowModule = {
+      id: `node-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      moduleId: meta.id,
+      name: meta.displayName,
+      category: meta.category,
+      position: { x: fromModule.position.x + 280, y: fromModule.position.y },
+      inputs: meta.inputFormats.map((f) => f.toLowerCase()),
+      outputs: meta.outputFormats.map((f) => f.toLowerCase()),
+    };
+    setModules((prev) => [...prev, newMod]);
+
+    const validation = validateModuleConnection(fromModule.moduleId, meta.id);
+    if (validation.valid) {
+      const fromMeta = getModuleById(fromModule.moduleId);
+      const compatFmts = fromMeta?.outputFormats.filter((f) => meta.inputFormats.includes(f)) || [];
+      const conn: WorkflowConnection = {
+        id: `conn-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        from: fromModule.id,
+        to: newMod.id,
+        fromPort: fromModule.outputs[0] || "output",
+        toPort: newMod.inputs[0] || "input",
+        dataType: compatFmts[0]?.toLowerCase() || "unknown",
+        validated: true,
+        learningAnnotation: validation.learningNote,
+      };
+      setConnections((prev) => [...prev, conn]);
+    }
+
+    setValidationErrors([]);
+  }, []);
 
   const moveModule = useCallback((id: string, pos: { x: number; y: number }) => {
     setModules((prev) =>
@@ -420,9 +502,65 @@ export default function WorkflowBuilderPage() {
                 </div>
               </div>
             )}
+
+            {/* Recommended Next Modules */}
+            {(() => {
+              const downstream = getCompatibleModules(selectedMod.moduleId, "downstream")
+                .filter((m) => !modules.some((existing) => existing.moduleId === m.id));
+              if (downstream.length === 0) return null;
+              return (
+                <div className="mt-4">
+                  <div className="text-[10px] font-semibold uppercase text-gray-500">
+                    Recommended Next
+                  </div>
+                  <div className="mt-1.5 space-y-1.5">
+                    {downstream.map((rec) => (
+                      <button
+                        key={rec.id}
+                        onClick={() => addModuleAndConnect(rec, selectedMod)}
+                        className="w-full rounded-lg border border-white/10 bg-white/[0.03] p-2.5 text-left transition-all hover:border-dayhoff-purple/30 hover:bg-dayhoff-purple/5"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-semibold text-white">
+                            {rec.displayName}
+                          </span>
+                          <Plus className="h-3 w-3 text-gray-500" />
+                        </div>
+                        <p className="mt-1 text-[10px] leading-relaxed text-gray-500">
+                          {rec.learning.conceptSummary.length > 100
+                            ? rec.learning.conceptSummary.slice(0, 100) + "…"
+                            : rec.learning.conceptSummary}
+                        </p>
+                        <div className="mt-1.5 flex gap-1">
+                          {rec.inputFormats.map((f) => (
+                            <span key={f} className="rounded bg-blue-500/10 px-1.5 py-0.5 text-[8px] font-medium uppercase text-blue-400">
+                              {f}
+                            </span>
+                          ))}
+                          <span className="text-[8px] text-gray-600">→</span>
+                          {rec.outputFormats.map((f) => (
+                            <span key={f} className="rounded bg-emerald-500/10 px-1.5 py-0.5 text-[8px] font-medium uppercase text-emerald-400">
+                              {f}
+                            </span>
+                          ))}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         )}
       </div>
+
+      {/* Bottom chat */}
+      <BuilderChat
+        name={name}
+        description={description}
+        modules={modules}
+        connections={connections}
+      />
     </div>
   );
 }

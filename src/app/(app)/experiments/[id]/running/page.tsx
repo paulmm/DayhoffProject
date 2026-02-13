@@ -22,8 +22,8 @@ interface ExperimentData {
   status: string;
   goal: string | null;
   config: {
-    recipeId?: string;
-    recipeName?: string;
+    workflowId?: string;
+    workflowName?: string;
     moduleIds?: string[];
     timeEstimate?: string;
     requiresGpu?: boolean;
@@ -128,9 +128,9 @@ export default function RunningExperimentPage() {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-bold text-white">{experiment.name}</h1>
-          {experiment.config?.recipeName && (
+          {experiment.config?.workflowName && (
             <p className="mt-0.5 text-sm text-dayhoff-purple">
-              {experiment.config.recipeName}
+              {experiment.config.workflowName}
             </p>
           )}
           {experiment.goal && (
@@ -182,18 +182,18 @@ export default function RunningExperimentPage() {
       )}
 
       {/* Structure Preview */}
-      {experiment.config?.recipeId && getDemoPdbId(experiment.config.recipeId) && (
+      {experiment.config?.workflowId && getDemoPdbId(experiment.config.workflowId) && (
         <div className="rounded-xl border border-white/10 bg-dayhoff-bg-secondary p-5">
           <h3 className="text-sm font-semibold text-white">Structure Preview</h3>
           <div className="mt-3">
             <MolstarViewerDynamic
-              pdbId={getDemoPdbId(experiment.config.recipeId!)!}
+              pdbId={getDemoPdbId(experiment.config.workflowId!)!}
               height="h-96"
               resizable
             />
           </div>
           <p className="mt-2 text-[10px] text-gray-500">
-            Demo structure: PDB {getDemoPdbId(experiment.config.recipeId!)}
+            Demo structure: PDB {getDemoPdbId(experiment.config.workflowId!)}
           </p>
         </div>
       )}

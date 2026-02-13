@@ -28,13 +28,13 @@ const navItems = [
 ];
 
 export default function Sidebar() {
-  const [expanded, setExpanded] = useState(true);
+  const [expanded, setExpanded] = useState(false);
   const pathname = usePathname();
   const { data: session } = useSession();
 
   return (
     <motion.aside
-      animate={{ width: expanded ? 256 : 64 }}
+      animate={{ width: expanded ? 272 : 72 }}
       transition={{ duration: 0.2, ease: "easeInOut" }}
       className="flex h-screen flex-col border-r border-white/10 bg-dayhoff-bg-secondary"
     >
@@ -62,14 +62,20 @@ export default function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors ${
+              className={`group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors ${
                 isActive
                   ? "border-l-2 border-dayhoff-purple bg-white/5 text-white"
                   : "text-gray-400 hover:bg-white/5 hover:text-white"
               }`}
             >
               <item.icon className="h-5 w-5 shrink-0" />
-              {expanded && <span>{item.label}</span>}
+              {expanded ? (
+                <span>{item.label}</span>
+              ) : (
+                <span className="pointer-events-none absolute left-full ml-3 whitespace-nowrap rounded-md bg-gray-900 px-2.5 py-1.5 text-xs font-medium text-white opacity-0 shadow-lg ring-1 ring-white/10 transition-opacity group-hover:opacity-100">
+                  {item.label}
+                </span>
+              )}
             </Link>
           );
         })}
@@ -89,11 +95,11 @@ export default function Sidebar() {
 
       {/* User Section */}
       <div className="border-t border-white/10 p-3">
-        <div className="flex items-center gap-3">
+        <div className="group relative flex items-center gap-3">
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-dayhoff-purple/20 text-sm font-semibold text-dayhoff-purple">
             {session?.user?.name?.[0] ?? "?"}
           </div>
-          {expanded && (
+          {expanded ? (
             <div className="flex flex-1 items-center justify-between">
               <span className="truncate text-sm text-gray-300">
                 {session?.user?.name ?? "User"}
@@ -106,6 +112,10 @@ export default function Sidebar() {
                 <LogOut className="h-4 w-4" />
               </button>
             </div>
+          ) : (
+            <span className="pointer-events-none absolute left-full ml-3 whitespace-nowrap rounded-md bg-gray-900 px-2.5 py-1.5 text-xs font-medium text-white opacity-0 shadow-lg ring-1 ring-white/10 transition-opacity group-hover:opacity-100">
+              {session?.user?.name ?? "User"}
+            </span>
           )}
         </div>
       </div>

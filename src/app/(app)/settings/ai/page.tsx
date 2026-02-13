@@ -15,6 +15,7 @@ import {
   FlaskConical,
   Sparkles,
   SlidersHorizontal,
+  Trophy,
 } from "lucide-react";
 
 interface AISettings {
@@ -28,6 +29,7 @@ interface AISettings {
   enableStreaming: boolean;
   enableCaching: boolean;
   learningMode: string;
+  learnerType: string;
 }
 
 const MODELS = [
@@ -72,6 +74,7 @@ const DEFAULT_SETTINGS: AISettings = {
   enableStreaming: true,
   enableCaching: false,
   learningMode: "socratic",
+  learnerType: "HANDS_ON",
 };
 
 const PRESETS = [
@@ -547,6 +550,93 @@ export default function AISettingsPage() {
               <div className="mt-1 text-xs text-gray-400">
                 AI gives answers directly with explanations — faster for
                 experienced users.
+              </div>
+            </div>
+          </button>
+        </div>
+      </section>
+
+      {/* Learning Style */}
+      <section className="space-y-3 rounded-xl border border-white/10 bg-dayhoff-bg-secondary p-6">
+        <h2 className="text-lg font-semibold text-white">Learning Style</h2>
+        <p className="text-sm text-gray-400">
+          Choose how module content and AI responses are adapted to your
+          learning preferences.
+        </p>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <button
+            onClick={() =>
+              setSettings((s) => ({ ...s, learnerType: "HANDS_ON" }))
+            }
+            className={`flex items-start gap-3 rounded-lg border p-4 text-left transition-all ${
+              settings.learnerType === "HANDS_ON"
+                ? "border-dayhoff-emerald bg-dayhoff-emerald/10"
+                : "border-white/10 bg-white/5 hover:border-white/20"
+            }`}
+          >
+            <FlaskConical className="mt-0.5 h-5 w-5 shrink-0 text-dayhoff-emerald" />
+            <div>
+              <div className="font-semibold text-white">Learn by Doing</div>
+              <div className="mt-1 text-xs text-gray-400">
+                Prioritizes hands-on exercises, practical steps, and real
+                experiments over theory.
+              </div>
+            </div>
+          </button>
+          <button
+            onClick={() =>
+              setSettings((s) => ({ ...s, learnerType: "CONCEPTUAL" }))
+            }
+            className={`flex items-start gap-3 rounded-lg border p-4 text-left transition-all ${
+              settings.learnerType === "CONCEPTUAL"
+                ? "border-blue-400 bg-blue-400/10"
+                : "border-white/10 bg-white/5 hover:border-white/20"
+            }`}
+          >
+            <BookOpen className="mt-0.5 h-5 w-5 shrink-0 text-blue-400" />
+            <div>
+              <div className="font-semibold text-white">Theory First</div>
+              <div className="mt-1 text-xs text-gray-400">
+                Focuses on algorithmic details, comparisons between approaches,
+                and conceptual depth.
+              </div>
+            </div>
+          </button>
+          <button
+            onClick={() =>
+              setSettings((s) => ({ ...s, learnerType: "ASSESSMENT" }))
+            }
+            className={`flex items-start gap-3 rounded-lg border p-4 text-left transition-all ${
+              settings.learnerType === "ASSESSMENT"
+                ? "border-dayhoff-amber bg-dayhoff-amber/10"
+                : "border-white/10 bg-white/5 hover:border-white/20"
+            }`}
+          >
+            <Trophy className="mt-0.5 h-5 w-5 shrink-0 text-dayhoff-amber" />
+            <div>
+              <div className="font-semibold text-white">Test My Knowledge</div>
+              <div className="mt-1 text-xs text-gray-400">
+                Emphasizes quizzes, knowledge checks, and key points to
+                remember.
+              </div>
+            </div>
+          </button>
+          <button
+            onClick={() =>
+              setSettings((s) => ({ ...s, learnerType: "EXPLORATORY" }))
+            }
+            className={`flex items-start gap-3 rounded-lg border p-4 text-left transition-all ${
+              settings.learnerType === "EXPLORATORY"
+                ? "border-dayhoff-purple bg-dayhoff-purple/10"
+                : "border-white/10 bg-white/5 hover:border-white/20"
+            }`}
+          >
+            <MessageSquare className="mt-0.5 h-5 w-5 shrink-0 text-dayhoff-purple" />
+            <div>
+              <div className="font-semibold text-white">Ask & Discover</div>
+              <div className="mt-1 text-xs text-gray-400">
+                Suggests follow-up questions, connects to broader themes, and
+                provides jumping-off points.
               </div>
             </div>
           </button>

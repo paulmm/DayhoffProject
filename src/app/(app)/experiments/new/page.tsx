@@ -1,14 +1,16 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useCustomWorkflows } from "@/hooks/useCustomWorkflows";
 import { getModuleById } from "@/data/modules-catalog";
 import {
-  EXPERIMENT_RECIPES,
-  type ExperimentRecipe,
-  type RecipeParameter,
+  EXPERIMENT_WORKFLOWS,
+  type ExperimentWorkflow,
+  type WorkflowParameter,
 } from "@/data/experiment-recipes";
+import { getExerciseById } from "@/data/module-exercises";
+import { getModuleById as getModuleMeta } from "@/data/modules-catalog";
 import { parsePdbChains } from "@/lib/pdb-parser";
 import { getDemoPdbId } from "@/data/recipe-demo-structures";
 import MolstarViewerDynamic from "@/components/molstar/MolstarViewerDynamic";
@@ -31,6 +33,7 @@ import {
   X,
   Maximize2,
   Minimize2,
+  Sparkles,
 } from "lucide-react";
 
 /* ── Types ────────────────────────────────────────────────────── */
@@ -76,15 +79,15 @@ function ModeCard({
   );
 }
 
-function RecipeCard({
-  recipe,
+function WorkflowCard({
+  workflow,
   onSelect,
 }: {
-  recipe: ExperimentRecipe;
-  onSelect: (recipe: ExperimentRecipe) => void;
+  workflow: ExperimentWorkflow;
+  onSelect: (workflow: ExperimentWorkflow) => void;
 }) {
   const [learnExpanded, setLearnExpanded] = useState(false);
-  const modules = recipe.moduleIds
+  const modules = workflow.moduleIds
     .map((id) => getModuleById(id))
     .filter(Boolean);
 
@@ -92,11 +95,11 @@ function RecipeCard({
     <div className="rounded-xl border border-white/10 bg-dayhoff-bg-secondary p-5">
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          <h3 className="text-base font-semibold text-white">{recipe.name}</h3>
-          <p className="mt-1 text-sm text-gray-400">{recipe.description}</p>
+          <h3 className="text-base font-semibold text-white">{workflow.name}</h3>
+          <p className="mt-1 text-sm text-gray-400">{workflow.description}</p>
         </div>
         <button
-          onClick={() => onSelect(recipe)}
+          onClick={() => onSelect(workflow)}
           className="ml-4 shrink-0 rounded-lg bg-dayhoff-purple px-4 py-2 text-sm font-semibold text-white hover:bg-dayhoff-purple/80"
         >
           Select
@@ -124,13 +127,13 @@ function RecipeCard({
 
       {/* Meta badges */}
       <div className="mt-3 flex items-center gap-4 text-xs text-gray-500">
-        {recipe.requiresGpu && (
+        {workflow.requiresGpu && (
           <span className="flex items-center gap-1">
             <Cpu className="h-3 w-3" /> GPU Required
           </span>
         )}
         <span className="flex items-center gap-1">
-          <Clock className="h-3 w-3" /> {recipe.timeEstimate}
+          <Clock className="h-3 w-3" /> {workflow.timeEstimate}
         </span>
       </div>
 
@@ -151,7 +154,7 @@ function RecipeCard({
       {learnExpanded && (
         <div className="mt-3 rounded-lg border border-dayhoff-emerald/20 bg-dayhoff-emerald/5 p-4">
           <ul className="space-y-1.5">
-            {recipe.whatWillLearn.map((item, i) => (
+            {workflow.whatWillLearn.map((item, i) => (
               <li
                 key={i}
                 className="flex items-start gap-2 text-xs text-gray-300"
@@ -170,16 +173,16 @@ function RecipeCard({
 function AIRecommendation({
   onAccept,
 }: {
-  onAccept: (recipe: ExperimentRecipe) => void;
+  onAccept: (workflow: ExperimentWorkflow) => void;
 }) {
   const [goal, setGoal] = useState("");
   const [analyzing, setAnalyzing] = useState(false);
   const [result, setResult] = useState<{
-    suggestedRecipeId: string;
+    suggestedWorkflowId: string;
     confidence: number;
     reasoning: string;
     learningObjectives: string[];
-    alternativeRecipeId: string | null;
+    alternativeWorkflowId: string | null;
   } | null>(null);
 
   const handleAnalyze = async () => {
@@ -203,11 +206,11 @@ function AIRecommendation({
     }
   };
 
-  const suggestedRecipe = result
-    ? EXPERIMENT_RECIPES.find((r) => r.id === result.suggestedRecipeId)
+  const suggestedWorkflow = result
+    ? EXPERIMENT_WORKFLOWS.find((r) => r.id === result.suggestedWorkflowId)
     : null;
-  const altRecipe = result?.alternativeRecipeId
-    ? EXPERIMENT_RECIPES.find((r) => r.id === result.alternativeRecipeId)
+  const altWorkflow = result?.alternativeWorkflowId
+    ? EXPERIMENT_WORKFLOWS.find((r) => r.id === result.alternativeWorkflowId)
     : null;
 
   return (
@@ -218,7 +221,7 @@ function AIRecommendation({
         </h3>
         <p className="mt-1 text-xs text-gray-400">
           Tell us what you want to achieve and we&apos;ll suggest the best
-          experiment recipe.
+          experiment workflow.
         </p>
         <textarea
           value={goal}
@@ -242,7 +245,7 @@ function AIRecommendation({
       </div>
 
       {/* AI Recommendation result */}
-      {result && suggestedRecipe && (
+      {result && suggestedWorkflow && (
         <div className="rounded-xl border border-dayhoff-purple/30 bg-dayhoff-purple/5 p-5">
           <div className="flex items-center gap-2 text-sm font-semibold text-dayhoff-purple">
             <Brain className="h-4 w-4" />
@@ -266,7 +269,7 @@ function AIRecommendation({
           </div>
 
           <h3 className="mt-4 text-base font-semibold text-white">
-            {suggestedRecipe.name}
+            {suggestedWorkflow.name}
           </h3>
           <p className="mt-1 text-sm text-gray-300">{result.reasoning}</p>
 
@@ -292,18 +295,18 @@ function AIRecommendation({
 
           <div className="mt-4 flex items-center gap-3">
             <button
-              onClick={() => onAccept(suggestedRecipe)}
+              onClick={() => onAccept(suggestedWorkflow)}
               className="flex items-center gap-2 rounded-lg bg-dayhoff-purple px-5 py-2.5 text-sm font-semibold text-white hover:bg-dayhoff-purple/80"
             >
               <CheckCircle2 className="h-4 w-4" />
               Accept & Configure
             </button>
-            {altRecipe && (
+            {altWorkflow && (
               <button
-                onClick={() => onAccept(altRecipe)}
+                onClick={() => onAccept(altWorkflow)}
                 className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-semibold text-gray-300 hover:bg-white/10"
               >
-                Try {altRecipe.name} instead
+                Try {altWorkflow.name} instead
               </button>
             )}
           </div>
@@ -322,7 +325,7 @@ function ParameterField({
   availableChains,
   onFileRead,
 }: {
-  param: RecipeParameter;
+  param: WorkflowParameter;
   value: string | number;
   onChange: (val: string | number) => void;
   availableChains?: string[];
@@ -578,7 +581,7 @@ function ParameterField({
 /* ── Step 3 — Review & Launch ────────────────────────────────── */
 
 function ReviewStep({
-  recipe,
+  workflow,
   paramValues,
   experimentName,
   experimentDescription,
@@ -587,7 +590,7 @@ function ReviewStep({
   onLaunch,
   launching,
 }: {
-  recipe: ExperimentRecipe;
+  workflow: ExperimentWorkflow;
   paramValues: Record<string, string | number>;
   experimentName: string;
   experimentDescription: string;
@@ -596,7 +599,7 @@ function ReviewStep({
   onLaunch: () => void;
   launching: boolean;
 }) {
-  const modules = recipe.moduleIds
+  const modules = workflow.moduleIds
     .map((id) => getModuleById(id))
     .filter(Boolean);
 
@@ -632,10 +635,10 @@ function ReviewStep({
         <h3 className="text-sm font-semibold text-white">Configuration Summary</h3>
         <div className="mt-3 space-y-2">
           <div className="flex items-center justify-between text-sm">
-            <span className="text-gray-400">Recipe</span>
-            <span className="text-white">{recipe.name}</span>
+            <span className="text-gray-400">Workflow</span>
+            <span className="text-white">{workflow.name}</span>
           </div>
-          {[...recipe.parameters, ...recipe.commonParameters]
+          {[...workflow.parameters, ...workflow.commonParameters]
             .filter((p) => paramValues[p.id] !== undefined && paramValues[p.id] !== "")
             .map((p) => (
               <div
@@ -674,9 +677,9 @@ function ReviewStep({
         </div>
         <div className="mt-3 flex items-center gap-4 text-xs text-gray-500">
           <span className="flex items-center gap-1">
-            <Clock className="h-3 w-3" /> {recipe.timeEstimate}
+            <Clock className="h-3 w-3" /> {workflow.timeEstimate}
           </span>
-          {recipe.requiresGpu && (
+          {workflow.requiresGpu && (
             <span className="flex items-center gap-1">
               <Cpu className="h-3 w-3" /> GPU Required
             </span>
@@ -691,7 +694,7 @@ function ReviewStep({
           What to Expect
         </div>
         <p className="mt-2 text-sm leading-relaxed text-gray-300">
-          {recipe.whatToExpect}
+          {workflow.whatToExpect}
         </p>
         {paramValues.output_format && (
           <p className="mt-2 text-xs text-gray-400">
@@ -726,12 +729,18 @@ function ReviewStep({
 
 export default function NewExperimentPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { workflows } = useCustomWorkflows();
 
   const [step, setStep] = useState<WizardStep>(1);
+  const [exerciseContext, setExerciseContext] = useState<{
+    title: string;
+    moduleName: string;
+    exerciseId: string;
+  } | null>(null);
   const [mode, setMode] = useState<ExperimentMode>("single");
   const [recipeTab, setRecipeTab] = useState<RecipeTab>("workflows");
-  const [selectedRecipe, setSelectedRecipe] = useState<ExperimentRecipe | null>(
+  const [selectedWorkflow, setSelectedWorkflow] = useState<ExperimentWorkflow | null>(
     null
   );
   const [paramValues, setParamValues] = useState<
@@ -743,26 +752,60 @@ export default function NewExperimentPage() {
   const [uploadedPdbText, setUploadedPdbText] = useState("");
   const [availableChains, setAvailableChains] = useState<string[]>([]);
   const [viewerExpanded, setViewerExpanded] = useState(false);
+  const [prefilled, setPrefilled] = useState(false);
+
+  /* ── Prefill from URL params (exercise link) ───── */
+  useEffect(() => {
+    if (prefilled) return;
+    const prefillWorkflowId = searchParams.get("workflow");
+    const prefillModuleId = searchParams.get("module");
+    const prefillExerciseId = searchParams.get("exercise");
+
+    if (prefillWorkflowId && step === 1) {
+      const workflow = EXPERIMENT_WORKFLOWS.find(
+        (w) => w.id === prefillWorkflowId
+      );
+      if (workflow) {
+        // Build exercise context for the banner
+        if (prefillExerciseId) {
+          const exercise = getExerciseById(prefillExerciseId);
+          const modMeta = prefillModuleId
+            ? getModuleMeta(prefillModuleId)
+            : null;
+          if (exercise) {
+            setExerciseContext({
+              title: exercise.title,
+              moduleName: modMeta?.displayName ?? prefillModuleId ?? "",
+              exerciseId: exercise.id,
+            });
+          }
+        }
+        setPrefilled(true);
+        handleSelectWorkflow(workflow);
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, step, prefilled]);
 
   /* ── Handlers ───────────────────────────── */
 
-  const handleSelectRecipe = (recipe: ExperimentRecipe) => {
-    setSelectedRecipe(recipe);
+  const handleSelectWorkflow = (workflow: ExperimentWorkflow) => {
+    setSelectedWorkflow(workflow);
 
     // Initialize default parameter values
     const defaults: Record<string, string | number> = {};
-    [...recipe.parameters, ...recipe.commonParameters].forEach((p) => {
+    [...workflow.parameters, ...workflow.commonParameters].forEach((p) => {
       defaults[p.id] = p.default;
     });
     setParamValues(defaults);
-    setExperimentName(`${recipe.name} — ${new Date().toLocaleDateString()}`);
-    setExperimentDescription(recipe.description);
+    setExperimentName(`${workflow.name} — ${new Date().toLocaleDateString()}`);
+    setExperimentDescription(workflow.description);
     setStep(2);
   };
 
   const handleSelectCustomWorkflow = (wf: (typeof workflows)[0]) => {
-    // Create a lightweight recipe-like object from custom workflow
-    const recipe: ExperimentRecipe = {
+    // Create a lightweight workflow-like object from custom workflow
+    const workflow: ExperimentWorkflow = {
       id: `custom-${wf.id}`,
       name: wf.name,
       description: wf.description,
@@ -791,7 +834,7 @@ export default function NewExperimentPage() {
         },
       ],
     };
-    handleSelectRecipe(recipe);
+    handleSelectWorkflow(workflow);
   };
 
   const handleParamChange = (id: string, value: string | number) => {
@@ -826,8 +869,8 @@ export default function NewExperimentPage() {
   };
 
   const canProceedToReview = () => {
-    if (!selectedRecipe) return false;
-    return selectedRecipe.parameters
+    if (!selectedWorkflow) return false;
+    return selectedWorkflow.parameters
       .filter((p) => p.required)
       .every((p) => {
         const val = paramValues[p.id];
@@ -836,7 +879,7 @@ export default function NewExperimentPage() {
   };
 
   const handleLaunch = async () => {
-    if (!selectedRecipe) return;
+    if (!selectedWorkflow) return;
     setLaunching(true);
 
     try {
@@ -848,11 +891,11 @@ export default function NewExperimentPage() {
           goal: experimentDescription.trim(),
           parameters: paramValues,
           config: {
-            recipeId: selectedRecipe.id,
-            recipeName: selectedRecipe.name,
-            moduleIds: selectedRecipe.moduleIds,
-            timeEstimate: selectedRecipe.timeEstimate,
-            requiresGpu: selectedRecipe.requiresGpu,
+            workflowId: selectedWorkflow.id,
+            workflowName: selectedWorkflow.name,
+            moduleIds: selectedWorkflow.moduleIds,
+            timeEstimate: selectedWorkflow.timeEstimate,
+            requiresGpu: selectedWorkflow.requiresGpu,
           },
         }),
       });
@@ -926,11 +969,18 @@ export default function NewExperimentPage() {
       {step === 1 && (
         <div className="space-y-6">
           {/* Mode selection */}
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <ModeCard
+              icon={Sparkles}
+              title="Guided Workspace"
+              description="AI-guided step-by-step antibody design with 3D visualization"
+              active={false}
+              onClick={() => router.push("/experiments/workspace")}
+            />
             <ModeCard
               icon={FlaskConical}
               title="Single Experiment"
-              description="Choose a recipe and configure parameters"
+              description="Choose a workflow and configure parameters"
               active={mode === "single"}
               onClick={() => setMode("single")}
             />
@@ -986,11 +1036,11 @@ export default function NewExperimentPage() {
             {/* Workflows tab */}
             {recipeTab === "workflows" && (
               <div className="space-y-4">
-                {EXPERIMENT_RECIPES.map((recipe) => (
-                  <RecipeCard
-                    key={recipe.id}
-                    recipe={recipe}
-                    onSelect={handleSelectRecipe}
+                {EXPERIMENT_WORKFLOWS.map((workflow) => (
+                  <WorkflowCard
+                    key={workflow.id}
+                    workflow={workflow}
+                    onSelect={handleSelectWorkflow}
                   />
                 ))}
               </div>
@@ -998,7 +1048,7 @@ export default function NewExperimentPage() {
 
             {/* AI Suggested tab */}
             {recipeTab === "ai" && (
-              <AIRecommendation onAccept={handleSelectRecipe} />
+              <AIRecommendation onAccept={handleSelectWorkflow} />
             )}
 
             {/* My Workflows tab */}
@@ -1070,8 +1120,23 @@ export default function NewExperimentPage() {
       )}
 
       {/* ── Step 2 — Configure Parameters ───── */}
-      {step === 2 && selectedRecipe && (
+      {step === 2 && selectedWorkflow && (
         <div className="space-y-6">
+          {/* Exercise context banner */}
+          {exerciseContext && (
+            <div className="flex items-center gap-3 rounded-xl border border-dayhoff-emerald/30 bg-dayhoff-emerald/10 p-4">
+              <GraduationCap className="h-5 w-5 shrink-0 text-dayhoff-emerald" />
+              <div>
+                <div className="text-sm font-semibold text-dayhoff-emerald">
+                  Learning Exercise: {exerciseContext.title}
+                </div>
+                <div className="text-xs text-dayhoff-emerald/70">
+                  You&apos;re here from the {exerciseContext.moduleName} module
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Expanded viewer panel — shown above the grid when expanded */}
           {viewerExpanded && (
             <div className="rounded-xl border border-white/10 bg-dayhoff-bg-secondary p-5">
@@ -1091,7 +1156,7 @@ export default function NewExperimentPage() {
               <div className="mt-3">
                 <MolstarViewerDynamic
                   pdbData={uploadedPdbText || undefined}
-                  pdbId={!uploadedPdbText ? (getDemoPdbId(selectedRecipe.id) ?? undefined) : undefined}
+                  pdbId={!uploadedPdbText ? (getDemoPdbId(selectedWorkflow.id) ?? undefined) : undefined}
                   highlightedChain={uploadedPdbText && availableChains.length > 1 ? String(paramValues["chain_selection"] || "") : undefined}
                   height="h-[500px]"
                   resizable
@@ -1103,9 +1168,9 @@ export default function NewExperimentPage() {
                   Showing uploaded structure &middot; {availableChains.length} chain{availableChains.length !== 1 ? "s" : ""} detected
                 </p>
               )}
-              {!uploadedPdbText && getDemoPdbId(selectedRecipe.id) && (
+              {!uploadedPdbText && getDemoPdbId(selectedWorkflow.id) && (
                 <p className="mt-2 text-[10px] text-gray-500">
-                  Demo structure: PDB {getDemoPdbId(selectedRecipe.id)}
+                  Demo structure: PDB {getDemoPdbId(selectedWorkflow.id)}
                 </p>
               )}
             </div>
@@ -1114,14 +1179,14 @@ export default function NewExperimentPage() {
           <div className={`grid grid-cols-1 gap-6 ${viewerExpanded ? "" : "lg:grid-cols-5"}`}>
             {/* Left: parameter form */}
             <div className={`space-y-6 ${viewerExpanded ? "" : "lg:col-span-3"}`}>
-              {/* Recipe-specific parameters */}
-              {selectedRecipe.parameters.length > 0 && (
+              {/* Workflow-specific parameters */}
+              {selectedWorkflow.parameters.length > 0 && (
                 <div className="rounded-xl border border-white/10 bg-dayhoff-bg-secondary p-5">
                   <h3 className="text-sm font-semibold text-white">
-                    {selectedRecipe.name} Parameters
+                    {selectedWorkflow.name} Parameters
                   </h3>
                   <div className="mt-4 space-y-5">
-                    {selectedRecipe.parameters.map((param) => (
+                    {selectedWorkflow.parameters.map((param) => (
                       <ParameterField
                         key={param.id}
                         param={param}
@@ -1141,7 +1206,7 @@ export default function NewExperimentPage() {
                   General Settings
                 </h3>
                 <div className="mt-4 space-y-5">
-                  {selectedRecipe.commonParameters.map((param) => (
+                  {selectedWorkflow.commonParameters.map((param) => (
                     <ParameterField
                       key={param.id}
                       param={param}
@@ -1172,7 +1237,7 @@ export default function NewExperimentPage() {
                   <div className="mt-3">
                     <MolstarViewerDynamic
                       pdbData={uploadedPdbText || undefined}
-                      pdbId={!uploadedPdbText ? (getDemoPdbId(selectedRecipe.id) ?? undefined) : undefined}
+                      pdbId={!uploadedPdbText ? (getDemoPdbId(selectedWorkflow.id) ?? undefined) : undefined}
                       highlightedChain={uploadedPdbText && availableChains.length > 1 ? String(paramValues["chain_selection"] || "") : undefined}
                       height="h-96"
                       onResidueClick={handleAddHotspot}
@@ -1183,9 +1248,9 @@ export default function NewExperimentPage() {
                       Showing uploaded structure &middot; {availableChains.length} chain{availableChains.length !== 1 ? "s" : ""} detected
                     </p>
                   )}
-                  {!uploadedPdbText && getDemoPdbId(selectedRecipe.id) && (
+                  {!uploadedPdbText && getDemoPdbId(selectedWorkflow.id) && (
                     <p className="mt-2 text-[10px] text-gray-500">
-                      Demo structure: PDB {getDemoPdbId(selectedRecipe.id)}
+                      Demo structure: PDB {getDemoPdbId(selectedWorkflow.id)}
                     </p>
                   )}
 
@@ -1193,9 +1258,9 @@ export default function NewExperimentPage() {
                   <div className="mt-4 space-y-2 text-xs">
                     <div className="flex items-center gap-2 text-gray-400">
                       <Clock className="h-3 w-3" />
-                      <span>Est. {selectedRecipe.timeEstimate}</span>
+                      <span>Est. {selectedWorkflow.timeEstimate}</span>
                     </div>
-                    {selectedRecipe.requiresGpu && (
+                    {selectedWorkflow.requiresGpu && (
                       <div className="flex items-center gap-2 text-gray-400">
                         <Cpu className="h-3 w-3" />
                         <span>GPU Required</span>
@@ -1204,8 +1269,8 @@ export default function NewExperimentPage() {
                     <div className="flex items-center gap-2 text-gray-400">
                       <FlaskConical className="h-3 w-3" />
                       <span>
-                        {selectedRecipe.moduleIds.length} module
-                        {selectedRecipe.moduleIds.length !== 1 ? "s" : ""}
+                        {selectedWorkflow.moduleIds.length} module
+                        {selectedWorkflow.moduleIds.length !== 1 ? "s" : ""}
                       </span>
                     </div>
                   </div>
@@ -1236,7 +1301,7 @@ export default function NewExperimentPage() {
       )}
 
       {/* ── Step 3 — Review & Launch ────────── */}
-      {step === 3 && selectedRecipe && (
+      {step === 3 && selectedWorkflow && (
         <div className="space-y-6">
           <button
             onClick={() => setStep(2)}
@@ -1246,7 +1311,7 @@ export default function NewExperimentPage() {
             Back to Configure
           </button>
           <ReviewStep
-            recipe={selectedRecipe}
+            workflow={selectedWorkflow}
             paramValues={paramValues}
             experimentName={experimentName}
             experimentDescription={experimentDescription}

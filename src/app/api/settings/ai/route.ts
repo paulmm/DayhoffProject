@@ -40,6 +40,7 @@ export async function PUT(request: NextRequest) {
     enableStreaming,
     enableCaching,
     learningMode,
+    learnerType,
   } = body;
 
   // Build update data — only encrypt if a new key is provided
@@ -52,6 +53,7 @@ export async function PUT(request: NextRequest) {
     enableStreaming,
     enableCaching,
     learningMode,
+    learnerType,
   };
 
   if (anthropicApiKey && !anthropicApiKey.startsWith("sk-ant-•••")) {

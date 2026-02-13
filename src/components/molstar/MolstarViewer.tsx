@@ -1,13 +1,14 @@
 "use client";
 
 import { useRef, useState, useCallback, useEffect } from "react";
-import { Loader2, Maximize2, Minimize2, RotateCcw, GripHorizontal, Plus } from "lucide-react";
-import { useMolstarPlugin, type ClickedResidue } from "@/hooks/useMolstarPlugin";
+import { Loader2, RotateCcw, GripHorizontal, Plus } from "lucide-react";
+import { useMolstarPlugin, type ClickedResidue, type HighlightRegion } from "@/hooks/useMolstarPlugin";
 
 interface MolstarViewerProps {
   pdbId?: string;
   pdbData?: string;
   highlightedChain?: string;
+  highlightRegions?: HighlightRegion[];
   className?: string;
   height?: string;
   resizable?: boolean;
@@ -18,32 +19,33 @@ export default function MolstarViewer({
   pdbId,
   pdbData,
   highlightedChain,
+  highlightRegions,
   className = "",
   height = "h-80",
   resizable = false,
   onResidueClick,
 }: MolstarViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [expanded, setExpanded] = useState(false);
   const [dragHeight, setDragHeight] = useState<number | null>(null);
   const { plugin, loading, error, hoverLabel, clickedResidue } = useMolstarPlugin({
     containerRef,
     pdbId,
     pdbData,
     highlightedChain,
+    highlightRegions,
   });
 
   const handleResetCamera = useCallback(() => {
     plugin?.canvas3d?.requestCameraReset();
   }, [plugin]);
 
-  // Notify molstar of resize when expanded state or drag height changes
+  // Notify molstar of resize when drag height changes
   useEffect(() => {
     if (plugin) {
       const timer = setTimeout(() => plugin.handleResize(), 50);
       return () => clearTimeout(timer);
     }
-  }, [expanded, dragHeight, plugin]);
+  }, [dragHeight, plugin]);
 
   // Drag-to-resize handler
   const handleResizeStart = useCallback(
@@ -71,31 +73,17 @@ export default function MolstarViewer({
 
   const hasStructure = !!(pdbId || pdbData);
 
-  // Determine the style for the viewer container
-  const viewerStyle = expanded
-    ? undefined
-    : dragHeight
-      ? { height: `${dragHeight}px` }
-      : undefined;
+  const viewerStyle = dragHeight ? { height: `${dragHeight}px` } : undefined;
+  const viewerClassName = `relative overflow-hidden rounded-lg ${dragHeight ? "" : height} ${className}`;
 
-  const viewerClassName = expanded
-    ? "fixed inset-4 z-50 flex flex-col rounded-xl border border-white/10 bg-dayhoff-bg-secondary shadow-2xl"
-    : `relative overflow-hidden rounded-lg ${dragHeight ? "" : height} ${className}`;
+  const isFullHeight = height === "h-full";
 
   return (
-    <div>
+    <div className={isFullHeight ? "h-full" : undefined}>
       <div className={viewerClassName} style={viewerStyle}>
-        {/* Backdrop for expanded mode */}
-        {expanded && (
-          <div
-            className="fixed inset-0 z-[-1] bg-black/70"
-            onClick={() => setExpanded(false)}
-          />
-        )}
-
         {/* Toolbar */}
         {hasStructure && (
-          <div className="absolute right-2 top-2 z-20 flex items-center gap-1">
+          <div className="absolute bottom-2 right-2 z-20 flex items-center gap-1">
             <button
               onClick={handleResetCamera}
               title="Reset camera"
@@ -103,31 +91,13 @@ export default function MolstarViewer({
             >
               <RotateCcw className="h-3.5 w-3.5" />
             </button>
-            <button
-              onClick={() => setExpanded(!expanded)}
-              title={expanded ? "Exit fullscreen" : "Expand viewer"}
-              className="rounded-md bg-black/60 p-1.5 text-gray-400 backdrop-blur-sm hover:bg-black/80 hover:text-white"
-            >
-              {expanded ? (
-                <Minimize2 className="h-3.5 w-3.5" />
-              ) : (
-                <Maximize2 className="h-3.5 w-3.5" />
-              )}
-            </button>
           </div>
         )}
 
         {/* Molstar canvas container */}
         <div
           ref={containerRef}
-          className={
-            expanded ? "flex-1 bg-[#0a0b0f]" : "absolute inset-0 bg-[#0a0b0f]"
-          }
-          style={
-            expanded
-              ? {}
-              : { position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }
-          }
+          className="absolute inset-0 bg-[#0a0b0f]"
         />
 
         {/* Loading overlay */}
@@ -193,7 +163,7 @@ export default function MolstarViewer({
       </div>
 
       {/* Drag-to-resize handle */}
-      {resizable && !expanded && (
+      {resizable && (
         <div
           onMouseDown={handleResizeStart}
           className="group flex cursor-row-resize items-center justify-center py-1"

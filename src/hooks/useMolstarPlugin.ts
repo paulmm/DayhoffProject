@@ -10,6 +10,7 @@ import {
   StructureComponent,
 } from "molstar/lib/mol-plugin-state/transforms/model";
 import { StructureRepresentation3D } from "molstar/lib/mol-plugin-state/transforms/representation";
+import { Color } from "molstar/lib/mol-util/color";
 import { ColorNames } from "molstar/lib/mol-util/color/names";
 import { MolScriptBuilder as MS } from "molstar/lib/mol-script/language/builder";
 import { Expression } from "molstar/lib/mol-script/language/expression";
@@ -17,11 +18,20 @@ import { StructureElement, StructureProperties } from "molstar/lib/mol-model/str
 import { Loci } from "molstar/lib/mol-model/loci";
 import { OrderedSet } from "molstar/lib/mol-data/int/ordered-set";
 
+export interface HighlightRegion {
+  chain: string;
+  startResidue: number;
+  endResidue: number;
+  color: string; // hex color e.g. "#ef4444"
+  label?: string;
+}
+
 interface UseMolstarPluginOptions {
   containerRef: RefObject<HTMLDivElement | null>;
   pdbId?: string;
   pdbData?: string;
   highlightedChain?: string;
+  highlightRegions?: HighlightRegion[];
 }
 
 /** Build an Expression that selects atoms belonging to (or not belonging to) the given chain IDs */
@@ -51,13 +61,39 @@ function chainExpression(chainIds: string[], include: boolean): Expression {
   return MS.struct.generator.atomGroups({ "chain-test": test });
 }
 
+/** Build an Expression selecting residues in a range on a specific chain */
+function residueRangeExpression(chain: string, start: number, end: number): Expression {
+  return MS.struct.generator.atomGroups({
+    "chain-test": MS.core.rel.eq([
+      MS.struct.atomProperty.macromolecular.auth_asym_id(),
+      chain,
+    ]),
+    "residue-test": MS.core.logic.and([
+      MS.core.rel.gre([
+        MS.struct.atomProperty.macromolecular.auth_seq_id(),
+        start,
+      ]),
+      MS.core.rel.lte([
+        MS.struct.atomProperty.macromolecular.auth_seq_id(),
+        end,
+      ]),
+    ]),
+  });
+}
+
+/** Convert hex color string to Molstar Color number */
+function hexToMolstarColor(hex: string): Color {
+  const clean = hex.replace("#", "");
+  return Color(parseInt(clean, 16));
+}
+
 export interface ClickedResidue {
   chainId: string;
   seqId: number;
   compId: string;
 }
 
-export function useMolstarPlugin({ containerRef, pdbId, pdbData, highlightedChain }: UseMolstarPluginOptions) {
+export function useMolstarPlugin({ containerRef, pdbId, pdbData, highlightedChain, highlightRegions }: UseMolstarPluginOptions) {
   const pluginRef = useRef<PluginContext | null>(null);
   const [pluginReady, setPluginReady] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -205,13 +241,46 @@ export function useMolstarPlugin({ containerRef, pdbId, pdbData, highlightedChai
         }
 
         if (structureRef) {
+          const activeRegions = highlightRegions?.filter((r) => r.startResidue > 0) ?? [];
+          const hasRegionHighlight = activeRegions.length > 0;
+
           // Parse highlighted chains (e.g., "A" or "A,B")
           const selectedChains = highlightedChain
             ? highlightedChain.split(",").map((c) => c.trim()).filter(Boolean)
             : [];
           const hasChainHighlight = selectedChains.length > 0;
 
-          if (hasChainHighlight) {
+          if (hasRegionHighlight) {
+            // Region-based highlighting: base structure is semi-transparent gray,
+            // each selected region is colored with its specific color
+
+            // Base polymer — translucent gray
+            const base = structureRef.apply(StructureComponent, {
+              type: { name: "static" as const, params: "polymer" },
+              label: "Structure",
+            });
+
+            base.apply(StructureRepresentation3D, {
+              type: { name: "cartoon", params: { alpha: 0.25 } },
+              colorTheme: { name: "uniform", params: { value: ColorNames.gray } },
+            });
+
+            // Each highlighted region — solid color cartoon overlay
+            for (const region of activeRegions) {
+              const regionComponent = structureRef.apply(StructureComponent, {
+                type: {
+                  name: "expression" as const,
+                  params: residueRangeExpression(region.chain, region.startResidue, region.endResidue),
+                },
+                label: region.label || `${region.chain}:${region.startResidue}-${region.endResidue}`,
+              });
+
+              regionComponent.apply(StructureRepresentation3D, {
+                type: { name: "cartoon", params: {} },
+                colorTheme: { name: "uniform", params: { value: hexToMolstarColor(region.color) } },
+              });
+            }
+          } else if (hasChainHighlight) {
             // Selected chain(s) — full color cartoon
             const selectedComponent = structureRef.apply(StructureComponent, {
               type: {
@@ -240,7 +309,7 @@ export function useMolstarPlugin({ containerRef, pdbId, pdbData, highlightedChai
               colorTheme: { name: "uniform", params: { value: ColorNames.lightgray } },
             });
           } else {
-            // No chain highlight — show all polymer normally
+            // No highlight — show all polymer normally
             const polymer = structureRef.apply(StructureComponent, {
               type: { name: "static" as const, params: "polymer" },
             });
@@ -283,7 +352,7 @@ export function useMolstarPlugin({ containerRef, pdbId, pdbData, highlightedChai
     return () => {
       cancelled = true;
     };
-  }, [pluginReady, pdbId, pdbData, highlightedChain]);
+  }, [pluginReady, pdbId, pdbData, highlightedChain, highlightRegions]);
 
   return { plugin: pluginRef.current, loading, error, hoverLabel, clickedResidue };
 }

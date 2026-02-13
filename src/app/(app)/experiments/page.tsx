@@ -2,14 +2,14 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { FlaskConical, Plus, Loader2, Clock } from "lucide-react";
+import { FlaskConical, Plus, Loader2, Clock, Trash2 } from "lucide-react";
 
 interface Experiment {
   id: string;
   name: string;
   status: "DRAFT" | "QUEUED" | "RUNNING" | "COMPLETED" | "FAILED";
   goal: string | null;
-  config: { recipeName?: string } | null;
+  config: { workflowName?: string } | null;
   createdAt: string;
 }
 
@@ -24,6 +24,7 @@ const STATUS_STYLES: Record<string, string> = {
 export default function ExperimentsPage() {
   const [experiments, setExperiments] = useState<Experiment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     async function load() {
@@ -41,6 +42,24 @@ export default function ExperimentsPage() {
     }
     load();
   }, []);
+
+  const handleDelete = async (id: string) => {
+    setDeleting((prev) => new Set(prev).add(id));
+    try {
+      const res = await fetch(`/api/experiments/${id}`, { method: "DELETE" });
+      if (res.ok) {
+        setExperiments((prev) => prev.filter((e) => e.id !== id));
+      }
+    } catch {
+      // Silently fail
+    } finally {
+      setDeleting((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    }
+  };
 
   if (loading) {
     return (
@@ -92,44 +111,60 @@ export default function ExperimentsPage() {
       {experiments.length > 0 && (
         <div className="space-y-3">
           {experiments.map((exp) => (
-            <Link
+            <div
               key={exp.id}
-              href={`/experiments/${exp.id}/running`}
-              className="block rounded-xl border border-white/10 bg-dayhoff-bg-secondary p-5 transition-all hover:border-white/20"
+              className="group relative rounded-xl border border-white/10 bg-dayhoff-bg-secondary p-5 transition-all hover:border-white/20"
             >
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <h3 className="text-base font-semibold text-white">
-                    {exp.name}
-                  </h3>
-                  {exp.config?.recipeName && (
-                    <p className="mt-0.5 text-xs text-dayhoff-purple">
-                      {exp.config.recipeName}
-                    </p>
-                  )}
-                  {exp.goal && (
-                    <p className="mt-1 line-clamp-1 text-sm text-gray-400">
-                      {exp.goal}
-                    </p>
-                  )}
+              <Link
+                href={`/experiments/${exp.id}/running`}
+                className="block"
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <h3 className="text-base font-semibold text-white">
+                      {exp.name}
+                    </h3>
+                    {exp.config?.workflowName && (
+                      <p className="mt-0.5 text-xs text-dayhoff-purple">
+                        {exp.config.workflowName}
+                      </p>
+                    )}
+                    {exp.goal && (
+                      <p className="mt-1 line-clamp-1 text-sm text-gray-400">
+                        {exp.goal}
+                      </p>
+                    )}
+                  </div>
+                  <span
+                    className={`ml-4 shrink-0 rounded-full border px-2.5 py-0.5 text-xs font-semibold ${STATUS_STYLES[exp.status] || STATUS_STYLES.DRAFT}`}
+                  >
+                    {exp.status}
+                  </span>
                 </div>
-                <span
-                  className={`ml-4 shrink-0 rounded-full border px-2.5 py-0.5 text-xs font-semibold ${STATUS_STYLES[exp.status] || STATUS_STYLES.DRAFT}`}
-                >
-                  {exp.status}
-                </span>
-              </div>
-              <div className="mt-3 flex items-center gap-2 text-xs text-gray-500">
-                <Clock className="h-3 w-3" />
-                {new Date(exp.createdAt).toLocaleDateString(undefined, {
-                  month: "short",
-                  day: "numeric",
-                  year: "numeric",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </div>
-            </Link>
+                <div className="mt-3 flex items-center gap-2 text-xs text-gray-500">
+                  <Clock className="h-3 w-3" />
+                  {new Date(exp.createdAt).toLocaleDateString(undefined, {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </div>
+              </Link>
+              <button
+                onClick={() => handleDelete(exp.id)}
+                disabled={deleting.has(exp.id)}
+                className="absolute right-4 top-4 rounded-md p-1.5 text-gray-600 opacity-0 transition-all hover:bg-red-500/10 hover:text-red-400 group-hover:opacity-100 disabled:opacity-50"
+                title="Delete experiment"
+              >
+                {deleting.has(exp.id) ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Trash2 className="h-4 w-4" />
+                )}
+              </button>
+            </div>
           ))}
         </div>
       )}

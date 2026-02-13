@@ -4,7 +4,7 @@ export interface ParameterTooltip {
   recommended: string;
 }
 
-export interface RecipeParameter {
+export interface WorkflowParameter {
   id: string;
   label: string;
   type: "range" | "number" | "text" | "select" | "file" | "multitext";
@@ -19,7 +19,7 @@ export interface RecipeParameter {
   unit?: string;
 }
 
-export interface ExperimentRecipe {
+export interface ExperimentWorkflow {
   id: string;
   name: string;
   description: string;
@@ -28,13 +28,13 @@ export interface ExperimentRecipe {
   requiresGpu: boolean;
   whatWillLearn: string[];
   whatToExpect: string;
-  parameters: RecipeParameter[];
-  commonParameters: RecipeParameter[];
+  parameters: WorkflowParameter[];
+  commonParameters: WorkflowParameter[];
 }
 
-/* ── Common parameters shared across recipes ──────────────────── */
+/* ── Common parameters shared across workflows ─────────────────── */
 
-const COMMON_PARAMS: RecipeParameter[] = [
+const COMMON_PARAMS: WorkflowParameter[] = [
   {
     id: "random_seed",
     label: "Random Seed",
@@ -66,9 +66,9 @@ const COMMON_PARAMS: RecipeParameter[] = [
   },
 ];
 
-/* ── 5 Pre-built recipes ──────────────────────────────────────── */
+/* ── 5 Pre-built workflows ─────────────────────────────────────── */
 
-export const EXPERIMENT_RECIPES: ExperimentRecipe[] = [
+export const EXPERIMENT_WORKFLOWS: ExperimentWorkflow[] = [
   {
     id: "de-novo-design",
     name: "De Novo Protein Design",
@@ -470,6 +470,6 @@ export const EXPERIMENT_RECIPES: ExperimentRecipe[] = [
   },
 ];
 
-export function getRecipeById(id: string): ExperimentRecipe | undefined {
-  return EXPERIMENT_RECIPES.find((r) => r.id === id);
+export function getWorkflowById(id: string): ExperimentWorkflow | undefined {
+  return EXPERIMENT_WORKFLOWS.find((r) => r.id === id);
 }

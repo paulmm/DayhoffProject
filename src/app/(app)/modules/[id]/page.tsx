@@ -1,9 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { getModuleById, MODULE_CATALOG } from "@/data/modules-catalog";
+import { getCaseStudiesForModule } from "@/data/module-case-studies";
+import CaseStudyCard from "@/components/learning/CaseStudyCard";
+import ApplyKnowledgeSection from "@/components/learning/ApplyKnowledgeSection";
+import SkillLevelUpToast from "@/components/learning/SkillLevelUpToast";
 import {
   ArrowLeft,
   Lightbulb,
@@ -20,6 +24,7 @@ import {
   Sparkles,
   GraduationCap,
   MessageCircle,
+  FlaskConical,
 } from "lucide-react";
 
 const DIFFICULTY_COLORS: Record<string, string> = {
@@ -34,9 +39,17 @@ const TYPE_COLORS: Record<string, string> = {
   tool: "bg-blue-500/10 text-blue-400 border-blue-500/20",
 };
 
+const SKILL_COLORS: Record<string, string> = {
+  NOVICE: "text-gray-400 border-gray-500/30 bg-gray-500/10",
+  BEGINNER: "text-dayhoff-amber border-dayhoff-amber/30 bg-dayhoff-amber/10",
+  INTERMEDIATE: "text-dayhoff-purple border-dayhoff-purple/30 bg-dayhoff-purple/10",
+  ADVANCED: "text-dayhoff-emerald border-dayhoff-emerald/30 bg-dayhoff-emerald/10",
+};
+
 export default function ModuleDetailPage() {
   const params = useParams();
   const mod = getModuleById(params.id as string);
+  const caseStudies = mod ? getCaseStudiesForModule(mod.id) : [];
 
   const [whyExpanded, setWhyExpanded] = useState(false);
   const [expandedTopics, setExpandedTopics] = useState<Set<number>>(new Set());
@@ -45,6 +58,28 @@ export default function ModuleDetailPage() {
     { role: "user" | "assistant"; content: string }[]
   >([]);
   const [loading, setLoading] = useState(false);
+  const [skillLevel, setSkillLevel] = useState<string>("NOVICE");
+  const [levelUp, setLevelUp] = useState<string | null>(null);
+
+  // Fire-and-forget tracking helper
+  const track = useCallback(
+    (action: string, topic?: string) => {
+      if (!mod) return;
+      fetch(`/api/modules/${mod.id}/track`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, topic }),
+      }).catch(() => {});
+    },
+    [mod]
+  );
+
+  // Track page visit on mount
+  useEffect(() => {
+    if (mod) {
+      track("visited");
+    }
+  }, [mod, track]);
 
   if (!mod) {
     return (
@@ -69,8 +104,12 @@ export default function ModuleDetailPage() {
   const toggleTopic = (idx: number) => {
     setExpandedTopics((prev) => {
       const next = new Set(prev);
-      if (next.has(idx)) next.delete(idx);
-      else next.add(idx);
+      if (next.has(idx)) {
+        next.delete(idx);
+      } else {
+        next.add(idx);
+        track("expandedDeepDive", mod.learning.deepDiveTopics[idx]);
+      }
       return next;
     });
   };
@@ -94,6 +133,10 @@ export default function ModuleDetailPage() {
         ...prev,
         { role: "assistant", content: data.answer || data.error || "No response" },
       ]);
+      if (data.skillLevelUp) {
+        setSkillLevel(data.skillLevelUp);
+        setLevelUp(data.skillLevelUp);
+      }
     } catch {
       setMessages((prev) => [
         ...prev,
@@ -115,6 +158,9 @@ export default function ModuleDetailPage() {
 
   return (
     <div className="flex h-full">
+      {/* Level-up toast */}
+      <SkillLevelUpToast level={levelUp} onDismiss={() => setLevelUp(null)} />
+
       {/* Left Column (60%) */}
       <div className="flex-[3] overflow-y-auto p-8">
         <Link
@@ -136,6 +182,9 @@ export default function ModuleDetailPage() {
             <span className={`rounded-full border px-2.5 py-0.5 text-[10px] font-semibold capitalize ${DIFFICULTY_COLORS[mod.learning.difficulty]}`}>
               {mod.learning.difficulty}
             </span>
+            <span className={`rounded-full border px-2.5 py-0.5 text-[10px] font-semibold ${SKILL_COLORS[skillLevel]}`}>
+              {skillLevel}
+            </span>
           </div>
           <h1 className="mt-3 text-3xl font-bold text-white">
             {mod.displayName}
@@ -156,7 +205,11 @@ export default function ModuleDetailPage() {
               {mod.learning.conceptSummary}
             </p>
             <button
-              onClick={() => setWhyExpanded(!whyExpanded)}
+              onClick={() => {
+                const wasExpanded = whyExpanded;
+                setWhyExpanded(!wasExpanded);
+                if (!wasExpanded) track("expandedWhyItMatters");
+              }}
               className="mt-3 flex items-center gap-1 text-sm font-semibold text-dayhoff-purple hover:underline"
             >
               {whyExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
@@ -225,18 +278,34 @@ export default function ModuleDetailPage() {
             <div className="mb-2 text-sm font-semibold text-gray-300">Deep Dive Topics</div>
             <div className="space-y-1">
               {mod.learning.deepDiveTopics.map((topic, i) => (
-                <button
-                  key={i}
-                  onClick={() => toggleTopic(i)}
-                  className="flex w-full items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-left text-sm text-gray-300 hover:bg-white/10"
-                >
-                  {expandedTopics.has(i) ? (
-                    <ChevronDown className="h-4 w-4 shrink-0 text-dayhoff-purple" />
-                  ) : (
-                    <ChevronRight className="h-4 w-4 shrink-0 text-gray-500" />
+                <div key={i}>
+                  <button
+                    onClick={() => toggleTopic(i)}
+                    className="flex w-full items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-left text-sm text-gray-300 hover:bg-white/10"
+                  >
+                    {expandedTopics.has(i) ? (
+                      <ChevronDown className="h-4 w-4 shrink-0 text-dayhoff-purple" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4 shrink-0 text-gray-500" />
+                    )}
+                    {topic}
+                  </button>
+                  {expandedTopics.has(i) && (
+                    <div className="ml-6 mt-1 mb-2 rounded-lg border border-white/5 bg-white/[0.02] px-4 py-3">
+                      <p className="text-xs text-gray-500">
+                        This is an advanced topic. Ask Claude for a detailed explanation.
+                      </p>
+                      <button
+                        onClick={() =>
+                          handleAsk(`Explain "${topic}" in the context of ${mod.displayName}`)
+                        }
+                        className="mt-2 flex items-center gap-1 text-xs font-semibold text-dayhoff-purple hover:underline"
+                      >
+                        <MessageCircle className="h-3 w-3" /> Ask Claude about this
+                      </button>
+                    </div>
                   )}
-                  {topic}
-                </button>
+                </div>
               ))}
             </div>
           </div>
@@ -256,6 +325,38 @@ export default function ModuleDetailPage() {
               ))}
             </ul>
           </div>
+
+          {/* Case Studies */}
+          {caseStudies.length > 0 && (
+            <div>
+              <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-gray-300">
+                <FlaskConical className="h-4 w-4" />
+                Real-World Case Studies
+              </div>
+              <div className="space-y-3">
+                {caseStudies.map((cs, i) => (
+                  <CaseStudyCard
+                    key={i}
+                    study={cs}
+                    onView={() => track("viewedCaseStudy", cs.paperTitle)}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Apply Your Knowledge */}
+          <ApplyKnowledgeSection
+            moduleId={mod.id}
+            moduleName={mod.displayName}
+            deepDiveTopics={mod.learning.deepDiveTopics}
+            onLevelUp={(level) => {
+              setSkillLevel(level);
+              setLevelUp(level);
+            }}
+            onAsk={handleAsk}
+            onTrack={track}
+          />
 
           {/* Technical Specs */}
           <div className="mt-8">

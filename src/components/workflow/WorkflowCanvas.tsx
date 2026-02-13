@@ -42,8 +42,8 @@ interface Props {
 
 /* ── constants ─────────────────────────────────────────────────── */
 
-const NODE_W = 200;
-const NODE_H = 80;
+const NODE_W = 220;
+const NODE_H = 96;
 const PORT_R = 7;
 const GRID_SIZE = 20;
 
@@ -321,15 +321,37 @@ export default function WorkflowCanvas({
             className="cursor-pointer"
             onClick={() => onDeleteConnection(conn.id)}
           />
-          {/* data type label */}
-          <text
-            x={(p1.x + p2.x) / 2}
-            y={(p1.y + p2.y) / 2 - 8}
-            textAnchor="middle"
-            className="fill-gray-500 text-[9px]"
-          >
-            {conn.dataType}
-          </text>
+          {/* data type tag */}
+          {(() => {
+            const tagW = 38;
+            const tagH = 16;
+            const cx = (p1.x + p2.x) / 2;
+            const cy = (p1.y + p2.y) / 2 - 10;
+            return (
+              <g style={{ pointerEvents: "none" }}>
+                <rect
+                  x={cx - tagW / 2}
+                  y={cy - tagH / 2}
+                  width={tagW}
+                  height={tagH}
+                  rx={4}
+                  fill="rgba(15,16,22,0.85)"
+                  stroke={colors.port}
+                  strokeWidth={0.75}
+                  strokeOpacity={0.5}
+                />
+                <text
+                  x={cx}
+                  y={cy + 3.5}
+                  textAnchor="middle"
+                  fill={colors.port}
+                  className="text-[9px] font-semibold uppercase"
+                >
+                  {conn.dataType}
+                </text>
+              </g>
+            );
+          })()}
         </g>
       );
     });
@@ -398,39 +420,74 @@ export default function WorkflowCanvas({
             {mod.category}
           </text>
 
-          {/* I/O format label */}
-          {meta && (
-            <text
-              x={mod.position.x + NODE_W / 2}
-              y={mod.position.y + 64}
-              textAnchor="middle"
-              className="fill-gray-600 text-[9px]"
-              style={{ pointerEvents: "none" }}
-            >
-              {meta.inputFormats.join("/")} → {meta.outputFormats.join("/")}
-            </text>
-          )}
+          {/* I/O format tags */}
+          {meta && (() => {
+            const allTags = [
+              ...meta.inputFormats.map((f) => ({ label: f, kind: "in" as const })),
+              ...meta.outputFormats.map((f) => ({ label: f, kind: "out" as const })),
+            ];
+            const tagW = 36;
+            const tagH = 14;
+            const tagGap = 4;
+            const totalW = allTags.length * tagW + (allTags.length - 1) * tagGap;
+            const startX = mod.position.x + (NODE_W - totalW) / 2;
+            const tagY = mod.position.y + 62;
+
+            return allTags.map((tag, ti) => (
+              <g key={`tag-${ti}`} style={{ pointerEvents: "none" }}>
+                <rect
+                  x={startX + ti * (tagW + tagGap)}
+                  y={tagY}
+                  width={tagW}
+                  height={tagH}
+                  rx={4}
+                  fill={tag.kind === "in" ? "rgba(59,130,246,0.15)" : "rgba(16,185,129,0.15)"}
+                  stroke={tag.kind === "in" ? "rgba(59,130,246,0.3)" : "rgba(16,185,129,0.3)"}
+                  strokeWidth={0.5}
+                />
+                <text
+                  x={startX + ti * (tagW + tagGap) + tagW / 2}
+                  y={tagY + tagH / 2 + 3}
+                  textAnchor="middle"
+                  fill={tag.kind === "in" ? "#60a5fa" : "#34d399"}
+                  className="text-[8px] font-semibold uppercase"
+                >
+                  {tag.label}
+                </text>
+              </g>
+            ));
+          })()}
 
           {/* input ports (left side) */}
           {mod.inputs.map((port, pi) => {
             const pos = getInputPortPos(mod, pi, mod.inputs.length);
             return (
-              <circle
-                key={`in-${pi}`}
-                cx={pos.x}
-                cy={pos.y}
-                r={PORT_R}
-                fill="#1a1b23"
-                stroke={colors.port}
-                strokeWidth={2}
-                className="cursor-crosshair transition-all hover:fill-white/20"
-                onMouseUp={() => {
-                  if (drawing && drawing.fromModuleId !== mod.id) {
-                    tryConnect(drawing.fromModuleId, drawing.fromPort, mod.id, port);
-                    setDrawing(null);
-                  }
-                }}
-              />
+              <g key={`in-${pi}`}>
+                <circle
+                  cx={pos.x}
+                  cy={pos.y}
+                  r={PORT_R}
+                  fill="#1a1b23"
+                  stroke={colors.port}
+                  strokeWidth={2}
+                  className="cursor-crosshair transition-all hover:fill-white/20"
+                  onMouseUp={() => {
+                    if (drawing && drawing.fromModuleId !== mod.id) {
+                      tryConnect(drawing.fromModuleId, drawing.fromPort, mod.id, port);
+                      setDrawing(null);
+                    }
+                  }}
+                />
+                <text
+                  x={pos.x + PORT_R + 5}
+                  y={pos.y + 3}
+                  className="text-[8px] font-medium uppercase"
+                  fill="#60a5fa"
+                  style={{ pointerEvents: "none" }}
+                >
+                  {port}
+                </text>
+              </g>
             );
           })}
 
@@ -438,25 +495,36 @@ export default function WorkflowCanvas({
           {mod.outputs.map((port, pi) => {
             const pos = getOutputPortPos(mod, pi, mod.outputs.length);
             return (
-              <circle
-                key={`out-${pi}`}
-                cx={pos.x}
-                cy={pos.y}
-                r={PORT_R}
-                fill="#1a1b23"
-                stroke={colors.port}
-                strokeWidth={2}
-                className="cursor-crosshair transition-all hover:fill-white/20"
-                onMouseDown={(e) => {
-                  e.stopPropagation();
-                  setDrawing({
-                    fromModuleId: mod.id,
-                    fromPort: port,
-                    fromPos: pos,
-                    mousePos: pos,
-                  });
-                }}
-              />
+              <g key={`out-${pi}`}>
+                <circle
+                  cx={pos.x}
+                  cy={pos.y}
+                  r={PORT_R}
+                  fill="#1a1b23"
+                  stroke={colors.port}
+                  strokeWidth={2}
+                  className="cursor-crosshair transition-all hover:fill-white/20"
+                  onMouseDown={(e) => {
+                    e.stopPropagation();
+                    setDrawing({
+                      fromModuleId: mod.id,
+                      fromPort: port,
+                      fromPos: pos,
+                      mousePos: pos,
+                    });
+                  }}
+                />
+                <text
+                  x={pos.x - PORT_R - 5}
+                  y={pos.y + 3}
+                  textAnchor="end"
+                  className="text-[8px] font-medium uppercase"
+                  fill="#34d399"
+                  style={{ pointerEvents: "none" }}
+                >
+                  {port}
+                </text>
+              </g>
             );
           })}
 
