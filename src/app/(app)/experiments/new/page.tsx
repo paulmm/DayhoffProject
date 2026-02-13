@@ -137,7 +137,20 @@ function WorkflowCard({
         </span>
       </div>
 
-      {/* What will I learn? */}
+      {/* When to use + Key features (always visible) */}
+      <div className="mt-3 text-xs text-gray-400">
+        <span className="font-semibold text-gray-300">When to use:</span>{" "}
+        {workflow.whenToUse}
+      </div>
+      <div className="mt-2 flex flex-wrap gap-1.5">
+        {workflow.keyFeatures.map((feat, i) => (
+          <span key={i} className="rounded-full border border-dayhoff-emerald/20 bg-dayhoff-emerald/10 px-2.5 py-0.5 text-[10px] font-medium text-dayhoff-emerald">
+            {feat}
+          </span>
+        ))}
+      </div>
+
+      {/* What will I learn? (expandable) */}
       <button
         onClick={() => setLearnExpanded(!learnExpanded)}
         className="mt-3 flex items-center gap-1 text-xs font-semibold text-dayhoff-emerald hover:underline"
@@ -152,7 +165,7 @@ function WorkflowCard({
       </button>
 
       {learnExpanded && (
-        <div className="mt-3 rounded-lg border border-dayhoff-emerald/20 bg-dayhoff-emerald/5 p-4">
+        <div className="mt-2 rounded-lg border border-dayhoff-emerald/20 bg-dayhoff-emerald/5 p-4">
           <ul className="space-y-1.5">
             {workflow.whatWillLearn.map((item, i) => (
               <li
@@ -822,6 +835,8 @@ function NewExperimentContent() {
       requiresGpu: wf.modules.some(
         (m) => getModuleById(m.moduleId)?.computeRequirements.gpu
       ),
+      whenToUse: "When you need a custom pipeline tailored to your specific research question.",
+      keyFeatures: ["Custom pipeline", "Flexible configuration"],
       whatWillLearn: ["Custom workflow — learning content depends on configured modules"],
       whatToExpect:
         "This is a custom workflow you created. Results depend on the modules and connections you configured. Check each module's documentation for expected inputs and outputs.",
@@ -1043,7 +1058,7 @@ function NewExperimentContent() {
 
             {/* Workflows tab */}
             {recipeTab === "workflows" && (
-              <div className="space-y-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 {EXPERIMENT_WORKFLOWS.map((workflow) => (
                   <WorkflowCard
                     key={workflow.id}

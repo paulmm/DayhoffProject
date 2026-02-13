@@ -26,6 +26,8 @@ export interface ExperimentWorkflow {
   moduleIds: string[];
   timeEstimate: string;
   requiresGpu: boolean;
+  whenToUse: string;
+  keyFeatures: string[];
   whatWillLearn: string[];
   whatToExpect: string;
   parameters: WorkflowParameter[];
@@ -77,6 +79,8 @@ export const EXPERIMENT_WORKFLOWS: ExperimentWorkflow[] = [
     moduleIds: ["rfdiffusion", "proteinmpnn", "esmfold"],
     timeEstimate: "2-4 hours",
     requiresGpu: true,
+    whenToUse: "When you need to create entirely new proteins that don't exist in nature or when modifying existing proteins isn't sufficient.",
+    keyFeatures: ["Structure-first design", "High novelty", "Controllable geometry"],
     whatWillLearn: [
       "How diffusion models generate novel protein backbones from noise",
       "The inverse folding problem: designing sequences for a target structure",
@@ -123,6 +127,39 @@ export const EXPERIMENT_WORKFLOWS: ExperimentWorkflow[] = [
         placeholder: "e.g., A25,A30,A45",
       },
       {
+        id: "cdr_regions",
+        label: "CDR Regions",
+        type: "select",
+        default: "all_heavy",
+        options: [
+          { value: "h3_only", label: "CDR-H3 Only (fastest)" },
+          { value: "all_heavy", label: "All Heavy Chain CDRs (H1, H2, H3)" },
+          { value: "all_cdrs", label: "All CDRs (H1-H3, L1-L3)" },
+        ],
+        tooltip: {
+          what: "Which Complementarity-Determining Region loops to design de novo. CDRs are the hypervariable loops that determine antigen binding specificity.",
+          effect: "CDR-H3 is the most variable and contributes most to binding specificity. Designing more CDRs provides more optimization freedom but increases computational complexity.",
+          recommended: "Start with CDR-H3 only for initial exploration, then expand to all heavy chain CDRs for promising scaffolds.",
+        },
+      },
+      {
+        id: "framework_template",
+        label: "Framework Template",
+        type: "select",
+        default: "human_vh3",
+        options: [
+          { value: "human_vh3", label: "Human VH3 (most common)" },
+          { value: "human_vh1", label: "Human VH1" },
+          { value: "human_vh4", label: "Human VH4" },
+          { value: "auto", label: "Auto-detect from target" },
+        ],
+        tooltip: {
+          what: "The immunoglobulin framework scaffold to use for de novo CDR loop design.",
+          effect: "The framework provides the structural scaffold that holds CDR loops in position. Human frameworks improve developability and reduce immunogenicity risk.",
+          recommended: "Use Human VH3 — it's the most common and best-characterized framework for therapeutic antibodies.",
+        },
+      },
+      {
         id: "num_designs",
         label: "Number of Designs",
         type: "range",
@@ -162,6 +199,8 @@ export const EXPERIMENT_WORKFLOWS: ExperimentWorkflow[] = [
     moduleIds: ["rfantibody", "temstapro"],
     timeEstimate: "1-2 hours",
     requiresGpu: true,
+    whenToUse: "When you have an existing antibody that needs improved binding, stability, or developability properties.",
+    keyFeatures: ["CDR loop design", "Thermostability assessment", "Structure-guided optimization"],
     whatWillLearn: [
       "How computational antibody design works at the CDR loop level",
       "Why thermostability matters for therapeutic antibody development",
@@ -241,6 +280,8 @@ export const EXPERIMENT_WORKFLOWS: ExperimentWorkflow[] = [
     moduleIds: ["alphafold2", "esmfold"],
     timeEstimate: "30-60 minutes",
     requiresGpu: true,
+    whenToUse: "When you have a protein sequence but need to know its 3D structure for downstream analysis or design.",
+    keyFeatures: ["Dual-method validation", "Confidence scoring", "MSA-based and single-sequence approaches"],
     whatWillLearn: [
       "How AlphaFold2 uses evolutionary information (MSAs) for structure prediction",
       "How ESMFold uses protein language models as an alternative approach",
@@ -321,6 +362,8 @@ export const EXPERIMENT_WORKFLOWS: ExperimentWorkflow[] = [
     moduleIds: ["evoprotgrad", "temstapro"],
     timeEstimate: "1-3 hours",
     requiresGpu: true,
+    whenToUse: "When you want to improve an existing protein's function through iterative computational mutations.",
+    keyFeatures: ["Gradient-guided optimization", "Fitness landscape navigation", "Stability-aware evolution"],
     whatWillLearn: [
       "How computational directed evolution mimics laboratory evolution in silico",
       "Fitness landscapes and navigating sequence space with gradients",
@@ -399,6 +442,8 @@ export const EXPERIMENT_WORKFLOWS: ExperimentWorkflow[] = [
     moduleIds: ["geodock"],
     timeEstimate: "1-3 hours",
     requiresGpu: false,
+    whenToUse: "When you need to predict how two proteins physically interact and identify binding interfaces.",
+    keyFeatures: ["SE(3)-equivariant deep learning", "Multi-pose scoring", "Interface analysis"],
     whatWillLearn: [
       "How protein-protein docking works as a 6D search problem",
       "SE(3)-equivariant geometric deep learning for molecular modeling",
