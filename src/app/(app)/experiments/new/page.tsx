@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCustomWorkflows } from "@/hooks/useCustomWorkflows";
 import { getModuleById } from "@/data/modules-catalog";
@@ -728,6 +728,14 @@ function ReviewStep({
 /* ── Main Wizard ─────────────────────────────────────────────── */
 
 export default function NewExperimentPage() {
+  return (
+    <Suspense>
+      <NewExperimentContent />
+    </Suspense>
+  );
+}
+
+function NewExperimentContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { workflows } = useCustomWorkflows();

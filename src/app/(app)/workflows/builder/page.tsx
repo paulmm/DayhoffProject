@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { type ModuleMetadata, getModuleById, MODULE_CATALOG } from "@/data/modules-catalog";
 import { validateModuleConnection, getCompatibleModules } from "@/lib/modules/module-metadata";
@@ -25,6 +25,14 @@ import {
 } from "lucide-react";
 
 export default function WorkflowBuilderPage() {
+  return (
+    <Suspense>
+      <WorkflowBuilderContent />
+    </Suspense>
+  );
+}
+
+function WorkflowBuilderContent() {
   const router = useRouter();
   const { saveWorkflow } = useCustomWorkflows();
 
