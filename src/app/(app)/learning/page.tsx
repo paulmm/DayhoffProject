@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { MODULE_CATALOG, getModuleById } from "@/data/modules-catalog";
+import FadeIn from "@/components/motion/FadeIn";
+import StaggerList from "@/components/motion/StaggerList";
 import {
   GraduationCap,
   Boxes,
@@ -154,14 +156,17 @@ export default function LearningPage() {
   return (
     <div className="mx-auto max-w-6xl space-y-8 p-8">
       {/* ── A. Header ─────────────────────────── */}
-      <div>
-        <h1 className="text-2xl font-bold text-white">My Learning</h1>
-        <p className="mt-1 text-sm text-gray-400">
-          Track your progress across computational biology concepts
-        </p>
-      </div>
+      <FadeIn>
+        <div>
+          <h1 className="text-2xl font-bold text-white">My Learning</h1>
+          <p className="mt-1 text-sm text-gray-400">
+            Track your progress across computational biology concepts
+          </p>
+        </div>
+      </FadeIn>
 
       {/* ── B. Overall Stats ──────────────────── */}
+      <FadeIn delay={0.1}>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
         <div className="rounded-xl border border-white/10 bg-dayhoff-bg-secondary p-5">
           <BookOpen className="h-5 w-5 text-dayhoff-purple" />
@@ -194,8 +199,10 @@ export default function LearningPage() {
           </div>
         </div>
       </div>
+      </FadeIn>
 
       {/* ── C. Module Progress Grid ───────────── */}
+      <FadeIn delay={0.15}>
       <section>
         <h2 className="text-lg font-semibold text-white">Module Progress</h2>
 
@@ -220,7 +227,7 @@ export default function LearningPage() {
         )}
 
         {progress.length > 0 && (
-          <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <StaggerList className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
             {progress.map((lp) => {
               const mod = getModuleById(lp.moduleId);
               const pct = computeProgressPercent(lp);
@@ -334,12 +341,14 @@ export default function LearningPage() {
                 </div>
               );
             })}
-          </div>
+          </StaggerList>
         )}
       </section>
+      </FadeIn>
 
       {/* ── D. Suggested Next Steps ───────────── */}
       {suggestions.length > 0 && (
+        <FadeIn delay={0.2}>
         <section>
           <h2 className="text-lg font-semibold text-white">
             {progress.length > 0
@@ -373,6 +382,7 @@ export default function LearningPage() {
             ))}
           </div>
         </section>
+        </FadeIn>
       )}
     </div>
   );

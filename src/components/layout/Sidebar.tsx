@@ -24,7 +24,7 @@ const navItems = [
   { href: "/workflows", label: "Workflows", icon: GitBranch },
   { href: "/modules", label: "Modules", icon: Package },
   { href: "/learning", label: "My Learning", icon: GraduationCap },
-  { href: "/settings", label: "Settings", icon: Settings },
+  { href: "/settings/ai", label: "Settings", icon: Settings },
 ];
 
 export default function Sidebar() {

@@ -7,7 +7,9 @@ import { getModuleById, MODULE_CATALOG } from "@/data/modules-catalog";
 import { getCaseStudiesForModule } from "@/data/module-case-studies";
 import CaseStudyCard from "@/components/learning/CaseStudyCard";
 import ApplyKnowledgeSection from "@/components/learning/ApplyKnowledgeSection";
+import QuizPanel from "@/components/learning/QuizPanel";
 import SkillLevelUpToast from "@/components/learning/SkillLevelUpToast";
+import FadeIn from "@/components/motion/FadeIn";
 import {
   ArrowLeft,
   Lightbulb,
@@ -25,6 +27,7 @@ import {
   GraduationCap,
   MessageCircle,
   FlaskConical,
+  Trophy,
 } from "lucide-react";
 
 const DIFFICULTY_COLORS: Record<string, string> = {
@@ -171,67 +174,71 @@ export default function ModuleDetailPage() {
         </Link>
 
         {/* Header */}
-        <div className="mb-6">
-          <div className="flex items-center gap-2">
-            <span className={`rounded-full border px-2.5 py-0.5 text-[10px] font-semibold uppercase ${TYPE_COLORS[mod.type]}`}>
-              {mod.type}
-            </span>
-            <span className="rounded-full border border-white/10 px-2.5 py-0.5 text-[10px] font-semibold capitalize text-gray-400">
-              {mod.category}
-            </span>
-            <span className={`rounded-full border px-2.5 py-0.5 text-[10px] font-semibold capitalize ${DIFFICULTY_COLORS[mod.learning.difficulty]}`}>
-              {mod.learning.difficulty}
-            </span>
-            <span className={`rounded-full border px-2.5 py-0.5 text-[10px] font-semibold ${SKILL_COLORS[skillLevel]}`}>
-              {skillLevel}
-            </span>
+        <FadeIn>
+          <div className="mb-6">
+            <div className="flex items-center gap-2">
+              <span className={`rounded-full border px-2.5 py-0.5 text-[10px] font-semibold uppercase ${TYPE_COLORS[mod.type]}`}>
+                {mod.type}
+              </span>
+              <span className="rounded-full border border-white/10 px-2.5 py-0.5 text-[10px] font-semibold capitalize text-gray-400">
+                {mod.category}
+              </span>
+              <span className={`rounded-full border px-2.5 py-0.5 text-[10px] font-semibold capitalize ${DIFFICULTY_COLORS[mod.learning.difficulty]}`}>
+                {mod.learning.difficulty}
+              </span>
+              <span className={`rounded-full border px-2.5 py-0.5 text-[10px] font-semibold ${SKILL_COLORS[skillLevel]}`}>
+                {skillLevel}
+              </span>
+            </div>
+            <h1 className="mt-3 text-3xl font-bold text-white">
+              {mod.displayName}
+            </h1>
+            <p className="mt-2 text-gray-400">{mod.description}</p>
           </div>
-          <h1 className="mt-3 text-3xl font-bold text-white">
-            {mod.displayName}
-          </h1>
-          <p className="mt-2 text-gray-400">{mod.description}</p>
-        </div>
+        </FadeIn>
 
         {/* Learn Section */}
         <section className="space-y-5">
-          <div className="flex items-center gap-2 text-lg font-bold text-white">
-            <GraduationCap className="h-5 w-5 text-dayhoff-emerald" />
-            Learn
-          </div>
-
-          {/* Concept Summary */}
-          <div className="rounded-xl border border-white/10 bg-dayhoff-bg-secondary p-5">
-            <p className="text-sm leading-relaxed text-gray-300">
-              {mod.learning.conceptSummary}
-            </p>
-            <button
-              onClick={() => {
-                const wasExpanded = whyExpanded;
-                setWhyExpanded(!wasExpanded);
-                if (!wasExpanded) track("expandedWhyItMatters");
-              }}
-              className="mt-3 flex items-center gap-1 text-sm font-semibold text-dayhoff-purple hover:underline"
-            >
-              {whyExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-              Why It Matters
-            </button>
-            {whyExpanded && (
-              <p className="mt-2 text-sm leading-relaxed text-gray-400">
-                {mod.learning.whyItMatters}
-              </p>
-            )}
-          </div>
-
-          {/* Key Insight */}
-          <div className="flex gap-3 rounded-xl border border-dayhoff-emerald/20 bg-dayhoff-emerald/5 p-5">
-            <Lightbulb className="mt-0.5 h-5 w-5 shrink-0 text-dayhoff-emerald" />
-            <div>
-              <div className="text-sm font-semibold text-dayhoff-emerald">Key Insight</div>
-              <p className="mt-1 text-sm leading-relaxed text-gray-300">
-                {mod.learning.keyInsight}
-              </p>
+          <FadeIn delay={0.1}>
+            <div className="flex items-center gap-2 text-lg font-bold text-white">
+              <GraduationCap className="h-5 w-5 text-dayhoff-emerald" />
+              Learn
             </div>
-          </div>
+
+            {/* Concept Summary */}
+            <div className="mt-5 rounded-xl border border-white/10 bg-dayhoff-bg-secondary p-5">
+              <p className="text-sm leading-relaxed text-gray-300">
+                {mod.learning.conceptSummary}
+              </p>
+              <button
+                onClick={() => {
+                  const wasExpanded = whyExpanded;
+                  setWhyExpanded(!wasExpanded);
+                  if (!wasExpanded) track("expandedWhyItMatters");
+                }}
+                className="mt-3 flex items-center gap-1 text-sm font-semibold text-dayhoff-purple hover:underline"
+              >
+                {whyExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                Why It Matters
+              </button>
+              {whyExpanded && (
+                <p className="mt-2 text-sm leading-relaxed text-gray-400">
+                  {mod.learning.whyItMatters}
+                </p>
+              )}
+            </div>
+
+            {/* Key Insight */}
+            <div className="mt-5 flex gap-3 rounded-xl border border-dayhoff-emerald/20 bg-dayhoff-emerald/5 p-5">
+              <Lightbulb className="mt-0.5 h-5 w-5 shrink-0 text-dayhoff-emerald" />
+              <div>
+                <div className="text-sm font-semibold text-dayhoff-emerald">Key Insight</div>
+                <p className="mt-1 text-sm leading-relaxed text-gray-300">
+                  {mod.learning.keyInsight}
+                </p>
+              </div>
+            </div>
+          </FadeIn>
 
           {/* Prerequisites */}
           <div>
@@ -274,6 +281,7 @@ export default function ModuleDetailPage() {
           </div>
 
           {/* Deep Dive Topics */}
+          <FadeIn delay={0.15}>
           <div>
             <div className="mb-2 text-sm font-semibold text-gray-300">Deep Dive Topics</div>
             <div className="space-y-1">
@@ -309,6 +317,7 @@ export default function ModuleDetailPage() {
               ))}
             </div>
           </div>
+          </FadeIn>
 
           {/* Related Papers */}
           <div>
@@ -345,7 +354,25 @@ export default function ModuleDetailPage() {
             </div>
           )}
 
+          {/* Knowledge Check */}
+          <FadeIn delay={0.2}>
+            <div>
+              <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-gray-300">
+                <Trophy className="h-4 w-4 text-dayhoff-amber" />
+                Knowledge Check
+              </div>
+              <QuizPanel
+                moduleId={mod.id}
+                onLevelUp={(level) => {
+                  setSkillLevel(level);
+                  setLevelUp(level);
+                }}
+              />
+            </div>
+          </FadeIn>
+
           {/* Apply Your Knowledge */}
+          <FadeIn delay={0.25}>
           <ApplyKnowledgeSection
             moduleId={mod.id}
             moduleName={mod.displayName}
@@ -357,6 +384,7 @@ export default function ModuleDetailPage() {
             onAsk={handleAsk}
             onTrack={track}
           />
+          </FadeIn>
 
           {/* Technical Specs */}
           <div className="mt-8">

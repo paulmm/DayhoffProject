@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import FadeIn from "@/components/motion/FadeIn";
+import StaggerList from "@/components/motion/StaggerList";
 import { FlaskConical, Plus, Loader2, Clock, Trash2 } from "lucide-react";
 
 interface Experiment {
@@ -72,44 +74,48 @@ export default function ExperimentsPage() {
   return (
     <div className="mx-auto max-w-4xl space-y-6 p-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-white">Experiments</h1>
-          <p className="mt-1 text-sm text-gray-400">
-            Launch and track computational biology experiments.
-          </p>
+      <FadeIn>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-white">Experiments</h1>
+            <p className="mt-1 text-sm text-gray-400">
+              Launch and track computational biology experiments.
+            </p>
+          </div>
+          <Link
+            href="/experiments/new"
+            className="flex items-center gap-2 rounded-lg bg-dayhoff-purple px-5 py-2.5 text-sm font-semibold text-white hover:bg-dayhoff-purple/80"
+          >
+            <Plus className="h-4 w-4" />
+            New Experiment
+          </Link>
         </div>
-        <Link
-          href="/experiments/new"
-          className="flex items-center gap-2 rounded-lg bg-dayhoff-purple px-5 py-2.5 text-sm font-semibold text-white hover:bg-dayhoff-purple/80"
-        >
-          <Plus className="h-4 w-4" />
-          New Experiment
-        </Link>
-      </div>
+      </FadeIn>
 
       {/* Empty state */}
       {experiments.length === 0 && (
-        <div className="rounded-xl border border-white/10 bg-dayhoff-bg-secondary p-12 text-center">
-          <FlaskConical className="mx-auto h-10 w-10 text-gray-600" />
-          <p className="mt-3 text-sm text-gray-400">No experiments yet.</p>
-          <p className="mt-1 text-xs text-gray-500">
-            Create your first experiment to start exploring computational
-            biology.
-          </p>
-          <Link
-            href="/experiments/new"
-            className="mt-4 inline-flex items-center gap-2 rounded-lg bg-dayhoff-purple px-5 py-2.5 text-sm font-semibold text-white hover:bg-dayhoff-purple/80"
-          >
-            <Plus className="h-4 w-4" />
-            Create Your First Experiment
-          </Link>
-        </div>
+        <FadeIn delay={0.1}>
+          <div className="rounded-xl border border-white/10 bg-dayhoff-bg-secondary p-12 text-center">
+            <FlaskConical className="mx-auto h-10 w-10 text-gray-600" />
+            <p className="mt-3 text-sm text-gray-400">No experiments yet.</p>
+            <p className="mt-1 text-xs text-gray-500">
+              Create your first experiment to start exploring computational
+              biology.
+            </p>
+            <Link
+              href="/experiments/new"
+              className="mt-4 inline-flex items-center gap-2 rounded-lg bg-dayhoff-purple px-5 py-2.5 text-sm font-semibold text-white hover:bg-dayhoff-purple/80"
+            >
+              <Plus className="h-4 w-4" />
+              Create Your First Experiment
+            </Link>
+          </div>
+        </FadeIn>
       )}
 
       {/* Experiment list */}
       {experiments.length > 0 && (
-        <div className="space-y-3">
+        <StaggerList className="space-y-3">
           {experiments.map((exp) => (
             <div
               key={exp.id}
@@ -166,7 +172,7 @@ export default function ExperimentsPage() {
               </button>
             </div>
           ))}
-        </div>
+        </StaggerList>
       )}
     </div>
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import FadeIn from "@/components/motion/FadeIn";
 import {
   Eye,
   EyeOff,
@@ -447,6 +448,7 @@ export default function AISettingsPage() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-8 p-8">
+      <FadeIn>
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-white">AI Settings</h1>
@@ -481,6 +483,7 @@ export default function AISettingsPage() {
           </button>
         </div>
       </div>
+      </FadeIn>
 
       {/* Test/Save Result Messages */}
       {testResult && (
@@ -507,6 +510,7 @@ export default function AISettingsPage() {
       )}
 
       {/* Learning Preference */}
+      <FadeIn delay={0.05}>
       <section className="space-y-3 rounded-xl border border-white/10 bg-dayhoff-bg-secondary p-6">
         <h2 className="text-lg font-semibold text-white">
           Learning Preference
@@ -555,8 +559,10 @@ export default function AISettingsPage() {
           </button>
         </div>
       </section>
+      </FadeIn>
 
       {/* Learning Style */}
+      <FadeIn delay={0.1}>
       <section className="space-y-3 rounded-xl border border-white/10 bg-dayhoff-bg-secondary p-6">
         <h2 className="text-lg font-semibold text-white">Learning Style</h2>
         <p className="text-sm text-gray-400">
@@ -642,8 +648,10 @@ export default function AISettingsPage() {
           </button>
         </div>
       </section>
+      </FadeIn>
 
       {/* API Key */}
+      <FadeIn delay={0.15}>
       <section className="space-y-3 rounded-xl border border-white/10 bg-dayhoff-bg-secondary p-6">
         <h2 className="text-lg font-semibold text-white">API Key</h2>
         <p className="text-sm text-gray-400">
@@ -677,8 +685,10 @@ export default function AISettingsPage() {
           </button>
         </div>
       </section>
+      </FadeIn>
 
       {/* Model Selection */}
+      <FadeIn delay={0.2}>
       <section className="space-y-3 rounded-xl border border-white/10 bg-dayhoff-bg-secondary p-6">
         <h2 className="text-lg font-semibold text-white">Model</h2>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -707,9 +717,12 @@ export default function AISettingsPage() {
           ))}
         </div>
       </section>
+      </FadeIn>
 
       {/* AI Behavior & Personality */}
-      <BehaviorSection settings={settings} setSettings={setSettings} />
+      <FadeIn delay={0.25}>
+        <BehaviorSection settings={settings} setSettings={setSettings} />
+      </FadeIn>
 
     </div>
   );

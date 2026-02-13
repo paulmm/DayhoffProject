@@ -24,10 +24,10 @@ interface ApplyKnowledgeSectionProps {
 }
 
 const SECTION_ORDER: Record<LearnerType, string[]> = {
-  HANDS_ON: ["exercise", "quiz", "deepdives", "questions"],
-  ASSESSMENT: ["quiz", "exercise", "deepdives", "questions"],
-  CONCEPTUAL: ["deepdives", "exercise", "quiz", "questions"],
-  EXPLORATORY: ["questions", "exercise", "quiz", "deepdives"],
+  HANDS_ON: ["exercise", "deepdives", "questions"],
+  ASSESSMENT: ["exercise", "deepdives", "questions"],
+  CONCEPTUAL: ["deepdives", "exercise", "questions"],
+  EXPLORATORY: ["questions", "exercise", "deepdives"],
 };
 
 const EXPLORATORY_QUESTIONS = [
