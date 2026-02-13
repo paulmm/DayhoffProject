@@ -88,7 +88,7 @@ export default function SignInPage() {
                   <div className="w-full border-t border-white/[0.06]" />
                 </div>
                 <div className="relative flex justify-center text-xs">
-                  <span className="bg-[#0c0d12] px-3 text-gray-500">or</span>
+                  <span className="bg-dayhoff-bg-secondary px-3 text-gray-500">or</span>
                 </div>
               </div>
 

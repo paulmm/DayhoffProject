@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 200" fill="none">
+  <defs>
+    <linearGradient id="wfBg" x1="0" y1="0" x2="1000" y2="200" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#10111a"/>
+      <stop offset="100%" stop-color="#14151f"/>
+    </linearGradient>
+    <linearGradient id="purpleGlow" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#8b5cf6" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#8b5cf6" stop-opacity="0.08"/>
+    </linearGradient>
+    <linearGradient id="pinkGlow" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ec4899" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#ec4899" stop-opacity="0.08"/>
+    </linearGradient>
+    <linearGradient id="emeraldGlow" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#34d399" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#34d399" stop-opacity="0.08"/>
+    </linearGradient>
+    <linearGradient id="cyanGlow" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#7BE7FF" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#7BE7FF" stop-opacity="0.08"/>
+    </linearGradient>
+    <linearGradient id="amberGlow" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#fbbf24" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#fbbf24" stop-opacity="0.08"/>
+    </linearGradient>
+    <filter id="softGlow">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1000" height="200" rx="12" fill="url(#wfBg)" stroke="white" stroke-opacity="0.08"/>
+
+  <!-- Step 1: Target Input -->
+  <rect x="30" y="45" width="160" height="110" rx="12" fill="url(#cyanGlow)" stroke="#7BE7FF" stroke-opacity="0.3" stroke-width="1"/>
+  <text x="110" y="78" text-anchor="middle" font-family="system-ui, sans-serif" font-size="13" font-weight="700" fill="#7BE7FF">Target Input</text>
+  <text x="110" y="98" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#9ca3af">PDB Structure</text>
+  <text x="110" y="114" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#9ca3af">Antigen ID</text>
+  <text x="110" y="140" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9" fill="#6b7280" font-style="italic">"Here's what I see..."</text>
+
+  <!-- Arrow 1 -->
+  <path d="M 200 100 L 225 100" stroke="#8b5cf6" stroke-width="2" stroke-linecap="round" filter="url(#softGlow)"/>
+  <polygon points="225,95 235,100 225,105" fill="#8b5cf6"/>
+
+  <!-- Step 2: RFdiffusion -->
+  <rect x="240" y="45" width="160" height="110" rx="12" fill="url(#purpleGlow)" stroke="#8b5cf6" stroke-opacity="0.3" stroke-width="1"/>
+  <text x="320" y="78" text-anchor="middle" font-family="system-ui, sans-serif" font-size="13" font-weight="700" fill="#a78bfa">RFdiffusion</text>
+  <text x="320" y="98" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#9ca3af">Backbone Generation</text>
+  <text x="320" y="114" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#9ca3af">Diffusion Models</text>
+  <text x="320" y="140" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9" fill="#6b7280" font-style="italic">50 novel backbones</text>
+
+  <!-- Arrow 2 -->
+  <path d="M 410 100 L 435 100" stroke="#ec4899" stroke-width="2" stroke-linecap="round" filter="url(#softGlow)"/>
+  <polygon points="435,95 445,100 435,105" fill="#ec4899"/>
+
+  <!-- Step 3: ProteinMPNN -->
+  <rect x="450" y="45" width="160" height="110" rx="12" fill="url(#pinkGlow)" stroke="#ec4899" stroke-opacity="0.3" stroke-width="1"/>
+  <text x="530" y="78" text-anchor="middle" font-family="system-ui, sans-serif" font-size="13" font-weight="700" fill="#f472b6">ProteinMPNN</text>
+  <text x="530" y="98" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#9ca3af">Sequence Design</text>
+  <text x="530" y="114" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#9ca3af">Inverse Folding</text>
+  <text x="530" y="140" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9" fill="#6b7280" font-style="italic">Optimal sequences</text>
+
+  <!-- Arrow 3 -->
+  <path d="M 620 100 L 645 100" stroke="#34d399" stroke-width="2" stroke-linecap="round" filter="url(#softGlow)"/>
+  <polygon points="645,95 655,100 645,105" fill="#34d399"/>
+
+  <!-- Step 4: AlphaFold2 -->
+  <rect x="660" y="45" width="160" height="110" rx="12" fill="url(#emeraldGlow)" stroke="#34d399" stroke-opacity="0.3" stroke-width="1"/>
+  <text x="740" y="78" text-anchor="middle" font-family="system-ui, sans-serif" font-size="13" font-weight="700" fill="#34d399">AlphaFold2</text>
+  <text x="740" y="98" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#9ca3af">Structure Validation</text>
+  <text x="740" y="114" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#9ca3af">Confidence Scoring</text>
+  <text x="740" y="140" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9" fill="#6b7280" font-style="italic">pLDDT + PAE metrics</text>
+
+  <!-- Arrow 4 -->
+  <path d="M 830 100 L 855 100" stroke="#fbbf24" stroke-width="2" stroke-linecap="round" filter="url(#softGlow)"/>
+  <polygon points="855,95 865,100 855,105" fill="#fbbf24"/>
+
+  <!-- Step 5: Results -->
+  <rect x="870" y="45" width="105" height="110" rx="12" fill="url(#amberGlow)" stroke="#fbbf24" stroke-opacity="0.3" stroke-width="1"/>
+  <text x="922" y="78" text-anchor="middle" font-family="system-ui, sans-serif" font-size="13" font-weight="700" fill="#fbbf24">Results</text>
+  <text x="922" y="98" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#9ca3af">Ranked</text>
+  <text x="922" y="114" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#9ca3af">Designs</text>
+  <text x="922" y="140" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9" fill="#6b7280" font-style="italic">3D viewer + table</text>
+
+  <!-- Bottom label -->
+  <text x="500" y="185" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#6b7280">De Novo Protein Design Pipeline  &#8226;  AI-guided at every step  &#8226;  Transparent reasoning + literature citations</text>
+</svg>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { getModuleById } from "@/data/modules-catalog";
 import { getDemoPdbId } from "@/data/recipe-demo-structures";
@@ -42,6 +42,7 @@ const STATUS_STYLES: Record<string, string> = {
 
 export default function RunningExperimentPage() {
   const params = useParams();
+  const router = useRouter();
   const experimentId = params.id as string;
   const [experiment, setExperiment] = useState<ExperimentData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -51,7 +52,12 @@ export default function RunningExperimentPage() {
     const stored = sessionStorage.getItem(`experiment-${experimentId}`);
     if (stored) {
       try {
-        setExperiment(JSON.parse(stored));
+        const parsed = JSON.parse(stored);
+        if (parsed.status === "COMPLETED") {
+          router.replace(`/experiments/${experimentId}/results`);
+          return;
+        }
+        setExperiment(parsed);
         setLoading(false);
         return;
       } catch {
@@ -65,6 +71,10 @@ export default function RunningExperimentPage() {
         const res = await fetch(`/api/experiments/${experimentId}`);
         if (res.ok) {
           const data = await res.json();
+          if (data.status === "COMPLETED") {
+            router.replace(`/experiments/${experimentId}/results`);
+            return;
+          }
           setExperiment(data);
         }
       } catch {
@@ -74,7 +84,7 @@ export default function RunningExperimentPage() {
       }
     }
     fetchExperiment();
-  }, [experimentId]);
+  }, [experimentId, router]);
 
   const modules =
     experiment?.config?.moduleIds

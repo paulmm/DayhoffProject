@@ -15,7 +15,7 @@ const config: Config = {
       colors: {
         dayhoff: {
           bg: {
-            primary: "#0a0b0f",
+            primary: "#10111a",
             secondary: "#1a1b23",
           },
           purple: "#8b5cf6",

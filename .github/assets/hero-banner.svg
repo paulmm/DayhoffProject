@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 400" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1200" y2="400" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0c0d14"/>
+      <stop offset="50%" stop-color="#10111a"/>
+      <stop offset="100%" stop-color="#0e0f18"/>
+    </linearGradient>
+    <linearGradient id="orb1" cx="0.5" cy="0.5" r="0.5" gradientUnits="objectBoundingBox">
+      <stop offset="0%" stop-color="#8b5cf6" stop-opacity="0.18"/>
+      <stop offset="60%" stop-color="#8b5cf6" stop-opacity="0.04"/>
+      <stop offset="100%" stop-color="#8b5cf6" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="orb2" cx="0.5" cy="0.5" r="0.5" gradientUnits="objectBoundingBox">
+      <stop offset="0%" stop-color="#ec4899" stop-opacity="0.12"/>
+      <stop offset="60%" stop-color="#ec4899" stop-opacity="0.03"/>
+      <stop offset="100%" stop-color="#ec4899" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="orb3" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#7BE7FF" stop-opacity="0.10"/>
+      <stop offset="70%" stop-color="#7BE7FF" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="textGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#B8C7FF"/>
+      <stop offset="55%" stop-color="#7BE7FF"/>
+      <stop offset="100%" stop-color="#C9A7FF"/>
+    </linearGradient>
+    <linearGradient id="helixGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#7BE7FF" stop-opacity="0"/>
+      <stop offset="12%" stop-color="#7BE7FF" stop-opacity="0.7"/>
+      <stop offset="50%" stop-color="#B8C7FF" stop-opacity="0.6"/>
+      <stop offset="88%" stop-color="#C9A7FF" stop-opacity="0.7"/>
+      <stop offset="100%" stop-color="#C9A7FF" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="tagGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#8b5cf6"/>
+      <stop offset="100%" stop-color="#ec4899"/>
+    </linearGradient>
+    <!-- Dot grid pattern -->
+    <pattern id="dots" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
+      <circle cx="20" cy="20" r="0.8" fill="white" opacity="0.06"/>
+    </pattern>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="400" fill="url(#bg)"/>
+  <rect width="1200" height="400" fill="url(#dots)"/>
+
+  <!-- Ambient orbs -->
+  <ellipse cx="500" cy="180" rx="380" ry="320" fill="url(#orb1)"/>
+  <ellipse cx="780" cy="150" rx="260" ry="220" fill="url(#orb2)"/>
+  <ellipse cx="350" cy="240" rx="180" ry="160" fill="url(#orb3)"/>
+
+  <!-- Horizontal rule accents -->
+  <line x1="0" y1="120" x2="1200" y2="120" stroke="white" stroke-opacity="0.04"/>
+  <line x1="0" y1="310" x2="1200" y2="310" stroke="white" stroke-opacity="0.04"/>
+
+  <!-- Title text -->
+  <text x="600" y="155" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="22" font-weight="600" fill="#F3F6FF" letter-spacing="0.5">
+    The
+  </text>
+  <text x="600" y="210" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="72" font-weight="800" fill="url(#textGrad)" letter-spacing="-1">
+    Dayhoff Project
+  </text>
+
+  <!-- DNA helix underline -->
+  <path d="M 250 230 C 275 222, 300 222, 325 230 S 375 238, 400 230 S 450 222, 475 230 S 525 238, 550 230 S 600 222, 625 230 S 675 238, 700 230 S 750 222, 775 230 S 825 238, 850 230 S 900 222, 950 230" stroke="url(#helixGrad)" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+
+  <!-- Subtitle -->
+  <text x="600" y="270" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="18" fill="#9ca3af" letter-spacing="0.3">
+    A Bioinformatics Learning Workbench for
+  </text>
+  <text x="600" y="296" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="18" fill="#9ca3af" letter-spacing="0.3">
+    AI-Collaborative Scientific Discovery
+  </text>
+
+  <!-- Tech badges -->
+  <rect x="332" y="330" width="80" height="26" rx="13" fill="#8b5cf6" fill-opacity="0.15" stroke="#8b5cf6" stroke-opacity="0.3" stroke-width="1"/>
+  <text x="372" y="347" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" font-weight="600" fill="#a78bfa">Next.js</text>
+
+  <rect x="422" y="330" width="80" height="26" rx="13" fill="#8b5cf6" fill-opacity="0.15" stroke="#8b5cf6" stroke-opacity="0.3" stroke-width="1"/>
+  <text x="462" y="347" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" font-weight="600" fill="#a78bfa">Claude AI</text>
+
+  <rect x="512" y="330" width="80" height="26" rx="13" fill="#8b5cf6" fill-opacity="0.15" stroke="#8b5cf6" stroke-opacity="0.3" stroke-width="1"/>
+  <text x="552" y="347" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" font-weight="600" fill="#a78bfa">Mol*</text>
+
+  <rect x="602" y="330" width="80" height="26" rx="13" fill="#8b5cf6" fill-opacity="0.15" stroke="#8b5cf6" stroke-opacity="0.3" stroke-width="1"/>
+  <text x="642" y="347" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" font-weight="600" fill="#a78bfa">Prisma</text>
+
+  <rect x="692" y="330" width="100" height="26" rx="13" fill="#8b5cf6" fill-opacity="0.15" stroke="#8b5cf6" stroke-opacity="0.3" stroke-width="1"/>
+  <text x="742" y="347" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" font-weight="600" fill="#a78bfa">TypeScript</text>
+</svg>

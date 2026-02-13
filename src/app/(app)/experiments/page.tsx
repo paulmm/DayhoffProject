@@ -122,7 +122,11 @@ export default function ExperimentsPage() {
               className="group relative rounded-xl border border-white/10 bg-dayhoff-bg-secondary p-5 transition-all hover:border-white/20"
             >
               <Link
-                href={`/experiments/${exp.id}/running`}
+                href={
+                  exp.status === "COMPLETED"
+                    ? `/experiments/${exp.id}/results`
+                    : `/experiments/${exp.id}/running`
+                }
                 className="block"
               >
                 <div className="flex items-start justify-between">
