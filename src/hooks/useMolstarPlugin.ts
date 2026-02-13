@@ -11,17 +11,59 @@ import {
 } from "molstar/lib/mol-plugin-state/transforms/model";
 import { StructureRepresentation3D } from "molstar/lib/mol-plugin-state/transforms/representation";
 import { ColorNames } from "molstar/lib/mol-util/color/names";
+import { MolScriptBuilder as MS } from "molstar/lib/mol-script/language/builder";
+import { Expression } from "molstar/lib/mol-script/language/expression";
+import { StructureElement, StructureProperties } from "molstar/lib/mol-model/structure";
+import { Loci } from "molstar/lib/mol-model/loci";
+import { OrderedSet } from "molstar/lib/mol-data/int/ordered-set";
 
 interface UseMolstarPluginOptions {
   containerRef: RefObject<HTMLDivElement | null>;
   pdbId?: string;
   pdbData?: string;
+  highlightedChain?: string;
 }
 
-export function useMolstarPlugin({ containerRef, pdbId, pdbData }: UseMolstarPluginOptions) {
+/** Build an Expression that selects atoms belonging to (or not belonging to) the given chain IDs */
+function chainExpression(chainIds: string[], include: boolean): Expression {
+  let test: Expression;
+
+  if (chainIds.length === 1) {
+    test = MS.core.rel.eq([
+      MS.struct.atomProperty.macromolecular.auth_asym_id(),
+      chainIds[0],
+    ]);
+  } else {
+    test = MS.core.logic.or(
+      chainIds.map((c) =>
+        MS.core.rel.eq([
+          MS.struct.atomProperty.macromolecular.auth_asym_id(),
+          c,
+        ])
+      )
+    );
+  }
+
+  if (!include) {
+    test = MS.core.logic.not([test]);
+  }
+
+  return MS.struct.generator.atomGroups({ "chain-test": test });
+}
+
+export interface ClickedResidue {
+  chainId: string;
+  seqId: number;
+  compId: string;
+}
+
+export function useMolstarPlugin({ containerRef, pdbId, pdbData, highlightedChain }: UseMolstarPluginOptions) {
   const pluginRef = useRef<PluginContext | null>(null);
+  const [pluginReady, setPluginReady] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hoverLabel, setHoverLabel] = useState<string | null>(null);
+  const [clickedResidue, setClickedResidue] = useState<ClickedResidue | null>(null);
 
   // Initialize plugin once when container is available
   useEffect(() => {
@@ -29,6 +71,9 @@ export function useMolstarPlugin({ containerRef, pdbId, pdbData }: UseMolstarPlu
     if (!container) return;
 
     let disposed = false;
+    let hoverSub: { unsubscribe: () => void } | null = null;
+    let clickSub: { unsubscribe: () => void } | null = null;
+    let resizeObserver: ResizeObserver | null = null;
     const plugin = new PluginContext(DefaultPluginSpec());
 
     async function init() {
@@ -51,7 +96,52 @@ export function useMolstarPlugin({ containerRef, pdbId, pdbData }: UseMolstarPlu
           },
         });
 
+        // Set interactivity to residue-level for educational hover info
+        plugin.managers.interactivity.setProps({ granularity: "residue" });
+
         pluginRef.current = plugin;
+        setPluginReady(true);
+
+        // Watch container for size changes so the canvas stays in sync
+        resizeObserver = new ResizeObserver(() => {
+          plugin.handleResize();
+        });
+        resizeObserver.observe(container!);
+
+        // Subscribe to hover labels for tooltip display
+        hoverSub = plugin.behaviors.labels.highlight.subscribe((e) => {
+          if (e.labels.length > 0) {
+            const text = e.labels.map((l) => typeof l === "string" ? l : String(l)).join(", ");
+            setHoverLabel(text);
+          } else {
+            setHoverLabel(null);
+          }
+        });
+
+        // Subscribe to click events for residue selection
+        clickSub = plugin.behaviors.interaction.click.subscribe((event) => {
+          const loci = Loci.normalize(event.current.loci, "residue");
+          if (!StructureElement.Loci.is(loci)) return;
+
+          const seen = new Set<string>();
+          const residues: ClickedResidue[] = [];
+          for (const { unit, indices } of loci.elements) {
+            OrderedSet.forEach(indices, (idx) => {
+              const loc = StructureElement.Location.create(loci.structure, unit, unit.elements[idx]);
+              const chainId = StructureProperties.chain.auth_asym_id(loc);
+              const seqId = StructureProperties.residue.auth_seq_id(loc);
+              const compId = StructureProperties.residue.label_comp_id(loc);
+              const key = `${chainId}${seqId}`;
+              if (!seen.has(key)) {
+                seen.add(key);
+                residues.push({ chainId, seqId, compId });
+              }
+            });
+          }
+          if (residues.length > 0) {
+            setClickedResidue(residues[0]);
+          }
+        });
       } catch (e) {
         if (!disposed) {
           setError(e instanceof Error ? e.message : "Failed to initialize viewer");
@@ -63,6 +153,10 @@ export function useMolstarPlugin({ containerRef, pdbId, pdbData }: UseMolstarPlu
 
     return () => {
       disposed = true;
+      setPluginReady(false);
+      resizeObserver?.disconnect();
+      hoverSub?.unsubscribe();
+      clickSub?.unsubscribe();
       plugin.dispose();
       pluginRef.current = null;
       // Clean up canvas
@@ -72,10 +166,10 @@ export function useMolstarPlugin({ containerRef, pdbId, pdbData }: UseMolstarPlu
     };
   }, [containerRef]);
 
-  // Load structure when pdbId or pdbData changes
+  // Load structure when plugin is ready or pdbId/pdbData/highlightedChain changes
   useEffect(() => {
     const plugin = pluginRef.current;
-    if (!plugin) return;
+    if (!plugin || !pluginReady) return;
     if (!pdbId && !pdbData) return;
 
     let cancelled = false;
@@ -93,7 +187,6 @@ export function useMolstarPlugin({ containerRef, pdbId, pdbData }: UseMolstarPlu
         let structureRef;
 
         if (pdbData) {
-          // Load from raw PDB text
           structureRef = update
             .toRoot()
             .apply(RawData, { data: pdbData, label: "Uploaded PDB" })
@@ -101,7 +194,6 @@ export function useMolstarPlugin({ containerRef, pdbId, pdbData }: UseMolstarPlu
             .apply(ModelFromTrajectory)
             .apply(StructureFromModel);
         } else if (pdbId) {
-          // Load from RCSB (bcif format for efficiency)
           const url = `https://models.rcsb.org/${pdbId.toLowerCase()}.bcif`;
           structureRef = update
             .toRoot()
@@ -113,17 +205,53 @@ export function useMolstarPlugin({ containerRef, pdbId, pdbData }: UseMolstarPlu
         }
 
         if (structureRef) {
-          // Add cartoon representation for polymer
-          const polymer = structureRef.apply(StructureComponent, {
-            type: { name: "static" as const, params: "polymer" },
-          });
+          // Parse highlighted chains (e.g., "A" or "A,B")
+          const selectedChains = highlightedChain
+            ? highlightedChain.split(",").map((c) => c.trim()).filter(Boolean)
+            : [];
+          const hasChainHighlight = selectedChains.length > 0;
 
-          polymer.apply(StructureRepresentation3D, {
-            type: { name: "cartoon", params: {} },
-            colorTheme: { name: "sequence-id", params: {} },
-          });
+          if (hasChainHighlight) {
+            // Selected chain(s) — full color cartoon
+            const selectedComponent = structureRef.apply(StructureComponent, {
+              type: {
+                name: "expression" as const,
+                params: chainExpression(selectedChains, true),
+              },
+              label: `Chain ${selectedChains.join(", ")}`,
+            });
 
-          // Add ball-and-stick for ligands
+            selectedComponent.apply(StructureRepresentation3D, {
+              type: { name: "cartoon", params: {} },
+              colorTheme: { name: "sequence-id", params: {} },
+            });
+
+            // Other chains — faded gray cartoon
+            const otherComponent = structureRef.apply(StructureComponent, {
+              type: {
+                name: "expression" as const,
+                params: chainExpression(selectedChains, false),
+              },
+              label: "Other chains",
+            });
+
+            otherComponent.apply(StructureRepresentation3D, {
+              type: { name: "cartoon", params: {} },
+              colorTheme: { name: "uniform", params: { value: ColorNames.lightgray } },
+            });
+          } else {
+            // No chain highlight — show all polymer normally
+            const polymer = structureRef.apply(StructureComponent, {
+              type: { name: "static" as const, params: "polymer" },
+            });
+
+            polymer.apply(StructureRepresentation3D, {
+              type: { name: "cartoon", params: {} },
+              colorTheme: { name: "sequence-id", params: {} },
+            });
+          }
+
+          // Always show ligands
           const ligand = structureRef.apply(StructureComponent, {
             type: { name: "static" as const, params: "ligand" },
           });
@@ -135,7 +263,6 @@ export function useMolstarPlugin({ containerRef, pdbId, pdbData }: UseMolstarPlu
 
           await update.commit();
 
-          // Auto-focus the camera on the loaded structure
           if (!cancelled) {
             plugin!.canvas3d?.requestCameraReset();
           }
@@ -156,7 +283,7 @@ export function useMolstarPlugin({ containerRef, pdbId, pdbData }: UseMolstarPlu
     return () => {
       cancelled = true;
     };
-  }, [pdbId, pdbData]);
+  }, [pluginReady, pdbId, pdbData, highlightedChain]);
 
-  return { plugin: pluginRef.current, loading, error };
+  return { plugin: pluginRef.current, loading, error, hoverLabel, clickedResidue };
 }

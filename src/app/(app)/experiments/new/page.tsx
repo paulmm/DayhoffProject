@@ -29,13 +29,15 @@ import {
   Rocket,
   CheckCircle2,
   X,
+  Maximize2,
+  Minimize2,
 } from "lucide-react";
 
 /* ── Types ────────────────────────────────────────────────────── */
 
 type WizardStep = 1 | 2 | 3;
-type ExperimentMode = "single" | "ai" | "multi";
-type RecipeTab = "workflows" | "my";
+type ExperimentMode = "single" | "multi";
+type RecipeTab = "workflows" | "ai" | "my";
 
 /* ── Step 1 — Choose Mode & Workflow ─────────────────────────── */
 
@@ -327,6 +329,22 @@ function ParameterField({
   onFileRead?: (paramId: string, text: string) => void;
 }) {
   const [showTooltip, setShowTooltip] = useState(false);
+  const [fetchingExample, setFetchingExample] = useState(false);
+
+  const handleTryExample = async () => {
+    setFetchingExample(true);
+    try {
+      const res = await fetch("https://files.rcsb.org/download/6M0J.pdb");
+      if (!res.ok) throw new Error("Failed to fetch");
+      const text = await res.text();
+      onChange("6M0J.pdb");
+      onFileRead?.(param.id, text);
+    } catch {
+      // Silently fail
+    } finally {
+      setFetchingExample(false);
+    }
+  };
 
   return (
     <div className="space-y-2">
@@ -412,22 +430,45 @@ function ParameterField({
       )}
 
       {param.type === "text" && param.id === "chain_selection" && availableChains && availableChains.length > 0 ? (
-        <select
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white focus:border-dayhoff-purple focus:outline-none focus:ring-1 focus:ring-dayhoff-purple"
-        >
-          {availableChains.map((chain) => (
-            <option key={chain} value={chain} className="bg-dayhoff-bg-secondary">
-              Chain {chain}
-            </option>
-          ))}
-          {availableChains.length > 1 && (
-            <option value={availableChains.join(",")} className="bg-dayhoff-bg-secondary">
-              All chains ({availableChains.join(", ")})
-            </option>
-          )}
-        </select>
+        <div className="space-y-2">
+          <div className="flex flex-wrap gap-2">
+            {availableChains.map((chain) => {
+              const selected = String(value) === chain;
+              return (
+                <button
+                  key={chain}
+                  type="button"
+                  onClick={() => onChange(chain)}
+                  className={`rounded-lg border px-4 py-2 text-sm font-semibold transition-all ${
+                    selected
+                      ? "border-dayhoff-purple bg-dayhoff-purple/20 text-dayhoff-purple"
+                      : "border-white/10 bg-white/5 text-gray-400 hover:border-white/20 hover:text-white"
+                  }`}
+                >
+                  Chain {chain}
+                  {selected && <span className="ml-1.5 text-xs">&#10003;</span>}
+                </button>
+              );
+            })}
+            {availableChains.length > 1 && (
+              <button
+                type="button"
+                onClick={() => onChange(availableChains.join(","))}
+                className={`rounded-lg border px-4 py-2 text-sm font-semibold transition-all ${
+                  String(value) === availableChains.join(",")
+                    ? "border-dayhoff-purple bg-dayhoff-purple/20 text-dayhoff-purple"
+                    : "border-white/10 bg-white/5 text-gray-400 hover:border-white/20 hover:text-white"
+                }`}
+              >
+                All chains
+                {String(value) === availableChains.join(",") && <span className="ml-1.5 text-xs">&#10003;</span>}
+              </button>
+            )}
+          </div>
+          <p className="text-[10px] text-gray-500">
+            Selected chain is highlighted in the 3D viewer
+          </p>
+        </div>
       ) : param.type === "text" && (
         <input
           type="text"
@@ -491,26 +532,42 @@ function ParameterField({
             )}
           </div>
           {!value && (
-            <label className="cursor-pointer rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-white hover:bg-white/10">
-              Browse
-              <input
-                type="file"
-                accept=".pdb"
-                className="hidden"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) {
-                    onChange(file.name);
-                    const reader = new FileReader();
-                    reader.onload = (ev) => {
-                      const text = ev.target?.result as string;
-                      if (text) onFileRead?.(param.id, text);
-                    };
-                    reader.readAsText(file);
-                  }
-                }}
-              />
-            </label>
+            <div className="flex items-center gap-2">
+              <label className="cursor-pointer rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-white hover:bg-white/10">
+                Browse
+                <input
+                  type="file"
+                  accept=".pdb"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      onChange(file.name);
+                      const reader = new FileReader();
+                      reader.onload = (ev) => {
+                        const text = ev.target?.result as string;
+                        if (text) onFileRead?.(param.id, text);
+                      };
+                      reader.readAsText(file);
+                    }
+                  }}
+                />
+              </label>
+              {param.id === "input_pdb" && (
+                <button
+                  onClick={handleTryExample}
+                  disabled={fetchingExample}
+                  className="flex items-center gap-1.5 rounded-lg border border-dayhoff-emerald/30 bg-dayhoff-emerald/10 px-3 py-1.5 text-xs font-semibold text-dayhoff-emerald hover:bg-dayhoff-emerald/20 disabled:opacity-50"
+                >
+                  {fetchingExample ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <FlaskConical className="h-3 w-3" />
+                  )}
+                  Try example (6M0J)
+                </button>
+              )}
+            </div>
           )}
         </div>
       )}
@@ -685,6 +742,7 @@ export default function NewExperimentPage() {
   const [launching, setLaunching] = useState(false);
   const [uploadedPdbText, setUploadedPdbText] = useState("");
   const [availableChains, setAvailableChains] = useState<string[]>([]);
+  const [viewerExpanded, setViewerExpanded] = useState(false);
 
   /* ── Handlers ───────────────────────────── */
 
@@ -754,6 +812,16 @@ export default function NewExperimentPage() {
         setUploadedPdbText("");
         setAvailableChains([]);
       }
+    }
+  };
+
+  const handleAddHotspot = (residue: { chainId: string; seqId: number }) => {
+    const tag = `${residue.chainId}${residue.seqId}`;
+    const current = String(paramValues["hotspot_residues"] || "");
+    const existing = current.split(",").map((s) => s.trim()).filter(Boolean);
+    if (!existing.includes(tag)) {
+      existing.push(tag);
+      handleParamChange("hotspot_residues", existing.join(","));
     }
   };
 
@@ -858,20 +926,13 @@ export default function NewExperimentPage() {
       {step === 1 && (
         <div className="space-y-6">
           {/* Mode selection */}
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <ModeCard
               icon={FlaskConical}
               title="Single Experiment"
               description="Choose a recipe and configure parameters"
               active={mode === "single"}
               onClick={() => setMode("single")}
-            />
-            <ModeCard
-              icon={Brain}
-              title="AI Suggested"
-              description="Describe your goal, get AI recommendations"
-              active={mode === "ai"}
-              onClick={() => setMode("ai")}
             />
             <ModeCard
               icon={BarChart3}
@@ -882,131 +943,177 @@ export default function NewExperimentPage() {
             />
           </div>
 
-          {/* AI Suggested mode */}
-          {mode === "ai" && (
-            <AIRecommendation onAccept={handleSelectRecipe} />
-          )}
+          {/* Tabs: Workflows / AI Suggested / My Workflows */}
+          <div className="space-y-4">
+            <div className="flex gap-1 rounded-lg border border-white/10 bg-white/5 p-1">
+              <button
+                onClick={() => setRecipeTab("ai")}
+                className={`flex-1 rounded-md px-4 py-2 text-sm font-semibold transition-all ${
+                  recipeTab === "ai"
+                    ? "bg-dayhoff-purple text-white"
+                    : "text-gray-400 hover:text-white"
+                }`}
+              >
+                AI Suggested
+              </button>
+              <button
+                onClick={() => setRecipeTab("workflows")}
+                className={`flex-1 rounded-md px-4 py-2 text-sm font-semibold transition-all ${
+                  recipeTab === "workflows"
+                    ? "bg-dayhoff-purple text-white"
+                    : "text-gray-400 hover:text-white"
+                }`}
+              >
+                Workflows
+              </button>
+              <button
+                onClick={() => setRecipeTab("my")}
+                className={`flex-1 rounded-md px-4 py-2 text-sm font-semibold transition-all ${
+                  recipeTab === "my"
+                    ? "bg-dayhoff-purple text-white"
+                    : "text-gray-400 hover:text-white"
+                }`}
+              >
+                My Workflows
+                {workflows.length > 0 && (
+                  <span className="ml-2 rounded-full bg-white/10 px-2 py-0.5 text-[10px]">
+                    {workflows.length}
+                  </span>
+                )}
+              </button>
+            </div>
 
-          {/* Single / Multi mode — recipe selection */}
-          {(mode === "single" || mode === "multi") && (
-            <div className="space-y-4">
-              {/* Tabs */}
-              <div className="flex gap-1 rounded-lg border border-white/10 bg-white/5 p-1">
-                <button
-                  onClick={() => setRecipeTab("workflows")}
-                  className={`flex-1 rounded-md px-4 py-2 text-sm font-semibold transition-all ${
-                    recipeTab === "workflows"
-                      ? "bg-dayhoff-purple text-white"
-                      : "text-gray-400 hover:text-white"
-                  }`}
-                >
-                  Workflows
-                </button>
-                <button
-                  onClick={() => setRecipeTab("my")}
-                  className={`flex-1 rounded-md px-4 py-2 text-sm font-semibold transition-all ${
-                    recipeTab === "my"
-                      ? "bg-dayhoff-purple text-white"
-                      : "text-gray-400 hover:text-white"
-                  }`}
-                >
-                  My Workflows
-                  {workflows.length > 0 && (
-                    <span className="ml-2 rounded-full bg-white/10 px-2 py-0.5 text-[10px]">
-                      {workflows.length}
-                    </span>
-                  )}
-                </button>
+            {/* Workflows tab */}
+            {recipeTab === "workflows" && (
+              <div className="space-y-4">
+                {EXPERIMENT_RECIPES.map((recipe) => (
+                  <RecipeCard
+                    key={recipe.id}
+                    recipe={recipe}
+                    onSelect={handleSelectRecipe}
+                  />
+                ))}
               </div>
+            )}
 
-              {/* Workflows tab */}
-              {recipeTab === "workflows" && (
-                <div className="space-y-4">
-                  {EXPERIMENT_RECIPES.map((recipe) => (
-                    <RecipeCard
-                      key={recipe.id}
-                      recipe={recipe}
-                      onSelect={handleSelectRecipe}
-                    />
-                  ))}
-                </div>
-              )}
+            {/* AI Suggested tab */}
+            {recipeTab === "ai" && (
+              <AIRecommendation onAccept={handleSelectRecipe} />
+            )}
 
-              {/* My Workflows tab */}
-              {recipeTab === "my" && (
-                <div className="space-y-4">
-                  {workflows.length === 0 ? (
-                    <div className="rounded-xl border border-white/10 bg-dayhoff-bg-secondary p-12 text-center">
-                      <FlaskConical className="mx-auto h-10 w-10 text-gray-600" />
-                      <p className="mt-3 text-sm text-gray-400">
-                        No custom workflows yet.
-                      </p>
-                      <p className="mt-1 text-xs text-gray-500">
-                        Create workflows in the Workflow Builder to use them here.
-                      </p>
-                    </div>
-                  ) : (
-                    workflows.map((wf) => (
-                      <div
-                        key={wf.id}
-                        className="rounded-xl border border-white/10 bg-dayhoff-bg-secondary p-5"
-                      >
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <h3 className="text-base font-semibold text-white">
-                              {wf.name}
-                            </h3>
-                            {wf.description && (
-                              <p className="mt-1 text-sm text-gray-400">
-                                {wf.description}
-                              </p>
+            {/* My Workflows tab */}
+            {recipeTab === "my" && (
+              <div className="space-y-4">
+                {workflows.length === 0 ? (
+                  <div className="rounded-xl border border-white/10 bg-dayhoff-bg-secondary p-12 text-center">
+                    <FlaskConical className="mx-auto h-10 w-10 text-gray-600" />
+                    <p className="mt-3 text-sm text-gray-400">
+                      No custom workflows yet.
+                    </p>
+                    <p className="mt-1 text-xs text-gray-500">
+                      Create workflows in the Workflow Builder to use them here.
+                    </p>
+                  </div>
+                ) : (
+                  workflows.map((wf) => (
+                    <div
+                      key={wf.id}
+                      className="rounded-xl border border-white/10 bg-dayhoff-bg-secondary p-5"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <h3 className="text-base font-semibold text-white">
+                            {wf.name}
+                          </h3>
+                          {wf.description && (
+                            <p className="mt-1 text-sm text-gray-400">
+                              {wf.description}
+                            </p>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => handleSelectCustomWorkflow(wf)}
+                          className="ml-4 shrink-0 rounded-lg bg-dayhoff-purple px-4 py-2 text-sm font-semibold text-white hover:bg-dayhoff-purple/80"
+                        >
+                          Select
+                        </button>
+                      </div>
+                      <div className="mt-3 flex items-center gap-2 overflow-x-auto">
+                        {wf.modules.map((mod, i) => (
+                          <div
+                            key={mod.id}
+                            className="flex items-center gap-2"
+                          >
+                            <div className="shrink-0 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5">
+                              <div className="text-xs font-semibold text-white">
+                                {mod.name}
+                              </div>
+                            </div>
+                            {i < wf.modules.length - 1 && (
+                              <ArrowRight className="h-3.5 w-3.5 shrink-0 text-gray-600" />
                             )}
                           </div>
-                          <button
-                            onClick={() => handleSelectCustomWorkflow(wf)}
-                            className="ml-4 shrink-0 rounded-lg bg-dayhoff-purple px-4 py-2 text-sm font-semibold text-white hover:bg-dayhoff-purple/80"
-                          >
-                            Select
-                          </button>
-                        </div>
-                        <div className="mt-3 flex items-center gap-2 overflow-x-auto">
-                          {wf.modules.map((mod, i) => (
-                            <div
-                              key={mod.id}
-                              className="flex items-center gap-2"
-                            >
-                              <div className="shrink-0 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5">
-                                <div className="text-xs font-semibold text-white">
-                                  {mod.name}
-                                </div>
-                              </div>
-                              {i < wf.modules.length - 1 && (
-                                <ArrowRight className="h-3.5 w-3.5 shrink-0 text-gray-600" />
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                        <div className="mt-2 text-xs text-gray-500">
-                          {wf.modules.length} module
-                          {wf.modules.length !== 1 ? "s" : ""} &middot; Updated{" "}
-                          {new Date(wf.updatedAt).toLocaleDateString()}
-                        </div>
+                        ))}
                       </div>
-                    ))
-                  )}
-                </div>
-              )}
-            </div>
-          )}
+                      <div className="mt-2 text-xs text-gray-500">
+                        {wf.modules.length} module
+                        {wf.modules.length !== 1 ? "s" : ""} &middot; Updated{" "}
+                        {new Date(wf.updatedAt).toLocaleDateString()}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
         </div>
       )}
 
       {/* ── Step 2 — Configure Parameters ───── */}
       {step === 2 && selectedRecipe && (
         <div className="space-y-6">
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          {/* Expanded viewer panel — shown above the grid when expanded */}
+          {viewerExpanded && (
+            <div className="rounded-xl border border-white/10 bg-dayhoff-bg-secondary p-5">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-white">
+                  Structure Viewer
+                </h3>
+                <button
+                  onClick={() => setViewerExpanded(false)}
+                  title="Collapse viewer"
+                  className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-gray-300 hover:bg-white/10 hover:text-white"
+                >
+                  <Minimize2 className="h-3.5 w-3.5" />
+                  Collapse
+                </button>
+              </div>
+              <div className="mt-3">
+                <MolstarViewerDynamic
+                  pdbData={uploadedPdbText || undefined}
+                  pdbId={!uploadedPdbText ? (getDemoPdbId(selectedRecipe.id) ?? undefined) : undefined}
+                  highlightedChain={uploadedPdbText && availableChains.length > 1 ? String(paramValues["chain_selection"] || "") : undefined}
+                  height="h-[500px]"
+                  resizable
+                  onResidueClick={handleAddHotspot}
+                />
+              </div>
+              {uploadedPdbText && availableChains.length > 0 && (
+                <p className="mt-2 text-[10px] text-gray-500">
+                  Showing uploaded structure &middot; {availableChains.length} chain{availableChains.length !== 1 ? "s" : ""} detected
+                </p>
+              )}
+              {!uploadedPdbText && getDemoPdbId(selectedRecipe.id) && (
+                <p className="mt-2 text-[10px] text-gray-500">
+                  Demo structure: PDB {getDemoPdbId(selectedRecipe.id)}
+                </p>
+              )}
+            </div>
+          )}
+
+          <div className={`grid grid-cols-1 gap-6 ${viewerExpanded ? "" : "lg:grid-cols-5"}`}>
             {/* Left: parameter form */}
-            <div className="space-y-6 lg:col-span-2">
+            <div className={`space-y-6 ${viewerExpanded ? "" : "lg:col-span-3"}`}>
               {/* Recipe-specific parameters */}
               {selectedRecipe.parameters.length > 0 && (
                 <div className="rounded-xl border border-white/10 bg-dayhoff-bg-secondary p-5">
@@ -1046,52 +1153,65 @@ export default function NewExperimentPage() {
               </div>
             </div>
 
-            {/* Right sidebar: 3D viewer */}
-            <div className="hidden lg:block">
-              <div className="sticky top-8 rounded-xl border border-white/10 bg-dayhoff-bg-secondary p-5">
-                <h3 className="text-sm font-semibold text-white">
-                  Structure Preview
-                </h3>
-                <div className="mt-3">
-                  <MolstarViewerDynamic
-                    pdbData={uploadedPdbText || undefined}
-                    pdbId={!uploadedPdbText ? (getDemoPdbId(selectedRecipe.id) ?? undefined) : undefined}
-                    height="h-64"
-                  />
-                </div>
-                {uploadedPdbText && availableChains.length > 0 && (
-                  <p className="mt-2 text-[10px] text-gray-500">
-                    Showing uploaded structure &middot; {availableChains.length} chain{availableChains.length !== 1 ? "s" : ""} detected
-                  </p>
-                )}
-                {!uploadedPdbText && getDemoPdbId(selectedRecipe.id) && (
-                  <p className="mt-2 text-[10px] text-gray-500">
-                    Demo structure: PDB {getDemoPdbId(selectedRecipe.id)}
-                  </p>
-                )}
-
-                {/* Quick info */}
-                <div className="mt-4 space-y-2 text-xs">
-                  <div className="flex items-center gap-2 text-gray-400">
-                    <Clock className="h-3 w-3" />
-                    <span>Est. {selectedRecipe.timeEstimate}</span>
+            {/* Right sidebar: 3D viewer (compact) — hidden when expanded */}
+            {!viewerExpanded && (
+              <div className="hidden lg:col-span-2 lg:block">
+                <div className="sticky top-8 rounded-xl border border-white/10 bg-dayhoff-bg-secondary p-5">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-semibold text-white">
+                      Structure Preview
+                    </h3>
+                    <button
+                      onClick={() => setViewerExpanded(true)}
+                      title="Expand viewer"
+                      className="rounded-md border border-white/10 bg-white/5 p-1.5 text-gray-400 hover:bg-white/10 hover:text-white"
+                    >
+                      <Maximize2 className="h-3.5 w-3.5" />
+                    </button>
                   </div>
-                  {selectedRecipe.requiresGpu && (
-                    <div className="flex items-center gap-2 text-gray-400">
-                      <Cpu className="h-3 w-3" />
-                      <span>GPU Required</span>
-                    </div>
+                  <div className="mt-3">
+                    <MolstarViewerDynamic
+                      pdbData={uploadedPdbText || undefined}
+                      pdbId={!uploadedPdbText ? (getDemoPdbId(selectedRecipe.id) ?? undefined) : undefined}
+                      highlightedChain={uploadedPdbText && availableChains.length > 1 ? String(paramValues["chain_selection"] || "") : undefined}
+                      height="h-96"
+                      onResidueClick={handleAddHotspot}
+                    />
+                  </div>
+                  {uploadedPdbText && availableChains.length > 0 && (
+                    <p className="mt-2 text-[10px] text-gray-500">
+                      Showing uploaded structure &middot; {availableChains.length} chain{availableChains.length !== 1 ? "s" : ""} detected
+                    </p>
                   )}
-                  <div className="flex items-center gap-2 text-gray-400">
-                    <FlaskConical className="h-3 w-3" />
-                    <span>
-                      {selectedRecipe.moduleIds.length} module
-                      {selectedRecipe.moduleIds.length !== 1 ? "s" : ""}
-                    </span>
+                  {!uploadedPdbText && getDemoPdbId(selectedRecipe.id) && (
+                    <p className="mt-2 text-[10px] text-gray-500">
+                      Demo structure: PDB {getDemoPdbId(selectedRecipe.id)}
+                    </p>
+                  )}
+
+                  {/* Quick info */}
+                  <div className="mt-4 space-y-2 text-xs">
+                    <div className="flex items-center gap-2 text-gray-400">
+                      <Clock className="h-3 w-3" />
+                      <span>Est. {selectedRecipe.timeEstimate}</span>
+                    </div>
+                    {selectedRecipe.requiresGpu && (
+                      <div className="flex items-center gap-2 text-gray-400">
+                        <Cpu className="h-3 w-3" />
+                        <span>GPU Required</span>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-2 text-gray-400">
+                      <FlaskConical className="h-3 w-3" />
+                      <span>
+                        {selectedRecipe.moduleIds.length} module
+                        {selectedRecipe.moduleIds.length !== 1 ? "s" : ""}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
 
           {/* Navigation buttons */}

@@ -188,7 +188,8 @@ export default function RunningExperimentPage() {
           <div className="mt-3">
             <MolstarViewerDynamic
               pdbId={getDemoPdbId(experiment.config.recipeId!)!}
-              height="h-64"
+              height="h-96"
+              resizable
             />
           </div>
           <p className="mt-2 text-[10px] text-gray-500">
